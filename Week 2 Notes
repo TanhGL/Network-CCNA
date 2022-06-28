@@ -1,0 +1,519 @@
+ex. Get Host 1 (10.1.1.1) -> Switch -> Router (f0/0 10.1.1.254, f0/1 10.1.2.254)) -> Switch -> Remote Host 2 (10.1.2.1), host 1 to host 2 to talk to each other [[WHEN NO GATEWAY IS SET... we are setting a "gateway of last resort"]]
+Host1> enable
+Host1# conf t
+Host1(config)# ip route 0.0.0.0 0.0.0.0 10.1.1.254 [this means, when Host1 does not know where to forward traffic without a gateway, it will go to 10.1.1.254)
+...similarly... if host 2 wants to contact host 1 and does not know where to forward the traffic for any network that is not connected to them...
+Host2> enable
+Host2# conf t
+Host2(config)# ip route 0.0.0.0 0.0.0.0 10.1.2.254
+**To confirm this: Host1> show ip route or Host2> show ip route
+
+MAC vs IP Address through a router
+- MAC address changes when going through a Layer 3 Router/switch - going from one Vlan or another / or 1 interface to another interface, MAC address is rewritten by the router
+- IP address however remains the same, except when a NAT Network Address Translation is used
+
+ex. Router1 -> Router2 -> Router 3
+Goal: Router1 ping Router3
+1) Router1 -> Router2 (ping request)
+Source MAC: Router1
+Destination MAC: Router2
+Source IP: Router1
+Destination IP: Router3
+2) Router2 -> Router3 (ping request)
+Source MAC: Router2
+Destination MAC: Router3
+Source IP: Router1
+Destination IP: Router3
+3) Router3 -> Router2 (ping reply)
+Source MAC: Router3
+Destination MAC: Router2
+Source IP: Router3
+Destination IP: Router1
+4) Router2 -> Router1 (ping reply)
+Source MAC: Router2
+Destination MAC: Router1
+Source IP: Router3
+Destination IP: Router1
+
+ex. See how long ARP cache last (using interface f0/0)
+Router> enable
+Router# show interface f0/0
+Answer: "ARP Timeout 04:00:00" (default for Cisco)
+
+Hub and Half/Full Duplex
+- Hub can see all traffic on a network (including passwords on Telnet), another benefit of using a switch
+- Half Duplex was first used because of Hubs and when negotiation with the other side did not work, it reverted back to 10Mbps Half Duplex
+- When autonegotiation does not work, the device will also revert back to half duplex... resulting in successful pings but poor speed (transfer of large files). Frames will eventually be queued up and eventually dropped
+
+To test Duplex mismatch or when autonegotiation does not work
+1) Compare the speed of both devices (ex. router on f0/0 and computer on f0/3)
+Router1# show running interface f0/0
+"full duplex"
+Computer1# show running interface f0/3
+"full duplex"
+2) Use a large # of pings (ex. 1000) and select a large datagram size (ex. 18000)
+3) Result
+- The device using half-duplex will have a "late collision" while performing the pings but it only occurs when you are sending enough traffic to trigger this
+- The device using full-duplex, use "Router1# show interface f0/3" will see "input errors", "CRC", "runts", duplex mismatch messages 
+
+To match duplex or autonegotiation of Switch1 and Router1
+1) From Router1
+Router1# conf t
+Router1(config)# int f0
+Router1(config-if)#speed auto
+Router1(config-if)#duplex auto (or half, or full)
+2) If it cannot be set at Router1, then set it on Switch1
+Switch1# conf t
+Switch1(config)# int f0
+Switch1(config-if)#speed auto
+Switch1(config-if)#duplex auto (or half, or full)
+***MORAL of the story, set it to auto. Do not hard code.
+
+Clear previous collisions
+Router1# clear counters
+
+Loopback interface
+- 127.0.0.1
+- By default, it is active (no need for "no shutdown" command)
+- Loopback can be used for telnet... must setup EIGRP
+
+Creating your own loopback interface
+Router1>enable
+Router1#conf terminal
+Router1(config)# interface loopback 0 (up to 2147483647 - do not memorize)
+Router1(config-if)# ip address anythingYouWant andGateway
+
+Reasons to use Loopback? (Reason 1) 
+- When interfaces are down between 2 routers, we can use Loopback in conjunction with EIGRP to continue access
+ex. If interface Router1 f0/0 f0/1 wants to telnet with Router2 g0/0 g0/1 and g0/0 is down, we can setup EIGRP using Open Shortest Path First (OSPF) on both devices as a backdoor access (this will use f0/1 and g0/1) through a Loopback
+1) Setup Router2 loopback
+Router2#config terminal
+Router2(config)# interface loopback 0
+Router2(config-if)# ip address 2.2.2.2 255.255.252.255
+2) Setup Router1 EIGRP
+Router1#config terminal
+Router1(config)# router eigrp 100
+Router1(config-router)# network 0.0.0.0
+3) Setup Router2 EIGRP
+Router2#config terminal
+Router2(config)# router eigrp 100
+Router2(config-router)# network 0.0.0.0
+--Optional step #3.5-- Confirm EIGRP is working
+Router1# show ip eigrp neighbors 
+OR 
+Router1# show ip route
+4) Telnet to Router2
+Router1# telnet 2.2.2.2
+
+Reasons to use Loopback? (Reason 2) 
+- Routing protocols such as OSPF use the loopback to determine Router ID in the OSPF network
+1) Enable ospf on all interfaces on Router1 and place them in area 0
+Router1#configure terminal
+Router1(config)# router ospf
+Router1(config-router)# network 0.0.0.0 255.255.255.0 area 0
+Router1(config-router)# end
+--Optional step-- Show ospf 
+Router1#show ip ospf interface (brief)
+**Router ID is selected on the highest Loopback IP address, if not, the highest IP address
+**Router's name is the Router ID. This is important because if you don't use a loopback and the Router ID was selected off a physical interface and the physical interface went down, the name of the router will change.
+
+Transport Layer TCP/IP
+- IP Internet Protcol is connectionless - every packet is treated individual and separately by routers
+- IP does not gurantee delivery of packets, in correct order, or free from errors (higher layers are responsible for this)
+
+TCP/UDP
+- TCP Transmission Control Protocol - 3-way handshake, connection oriented, reliable, delivery acknowledgement (sequence number), sequenced, HTTP/E-mail/FTP
+- UDP User Datagram Protocol - connectionless, best effort/unreliability, no gurantee of delivery, no sequencing, limited error delivery (if no port # available, message can be send to sender?), VOIP/Video-Streaming
+- Allows for Session Multiplexing - single host with single IP address can communicate with mutliple device/session
+- Connection must first be established between sender and receiver before data transmission in SEGMENTS
+- MTU Maximum Transmission Unit depends on physical medium (ex. MTU of FastEthernet is 1500bytes, MTU  of TCP support 65495 bytes)
+- MSS Maximum Segment Size is the maximum segment size that TCP is willing to send in a single segment, should be set small enough to avoid IP fragmentation which leads to excessive retransmission if there is packet loss
+- TCP supports MSS and Path MTU Discovery (sender and receiver automatically determine maximum transmission - avoid fragmentation)
+- Path MTU Discovery is mandatory in IPv6
+- UDP does not support Path MTU Discovery - relies on higher layer protocols
+- TCP has Flow Control (sliding window) to avoid data being sent too quickly - data sent too quickly will be dropped and require retransmission (causes delay), UDP has no Flow Control
+- TCP has session, and once transmission is complete, session is terminated. UDP has no sessions
+- TCP every segment is transmitted is acknowledged
+- UDP Header 16bit UDP length: minimum 8 bytes, maximum 65,535 bytes (everything is 16)
+
+TCP Summary
+- Connection Oriented
+- Full duplex operation
+- Error checking (checksum in datagram to confirm this)
+- Segments are sequenced
+- Acknowledgement of receipt
+- Retransmission of data is possible
+
+Application Layer
+- File Transfer: FTP File Transfer Protocol, TFTP Trivial File Transfer Protocol, NFS Network File System
+- E-mail: POP3 Post Office Protocol 3 (receive e-mail), SMTP Simple Mail Transfer Protocol (send e-mail), IMAP Internet Message Access Protocol (receive e-mail)
+- Remote Login: Telnet (sends traffic in clear text/insecure), SSH (secure shell/secure) 
+- Network Management: SNMP Simple Network Management Protocol
+- Name Management: DNS Domain Name System (translate domain names into ip addresses)
+
+Recap 7 layers
+**Physical (1) -> Data Link (2) -> Network (3) -> Transport (4) -> Application (7)
+**(RJ45 -> MAC Address -> IP Address -> TCP/UDP -> Port Number)
+
+Socket
+- Combination of: IP address of host, port number, TCP/UDP (transport protocol used)
+
+Port Numbers:
+- 7 ping echo 
+- 20 FTP Data
+- 21 FTP 
+- 22 SSH 
+- 23 Telne
+- 53 DNS TCP/UDP (UDP used to serve request, TCP is used when response data is over 512bytes)
+- 69 TFTP 
+- 80 HTTP 
+- 115 SFTP 
+- 161 SNMP
+- 443 HTTPS 
+*Well known port numbers: 0 - 1023
+*Registered port numbers: 1024 - 49151
+*Dynamic/Private port numbers: 49152 - 65535
+*Ephemeral port numbers (short lived port used for client side of connection - temporary, only last for session) - varies based on vendor
+
+3-way TCP Handshake
+1) [Host A->Host B] Send SYN (flag), set CTL = SYN, chooses random initial sequence number (ex. 100) so it knows the next sequence number to expect from Host B, chooses port #
+2) [Host A<-Host B] Received SYN (flag), Send SYN, Send ACK (from ex. ACK = 101, next in sequence to 100), set CTL = SYN, ACK, chooses another random initial sequence number so it knows the next sequence number to expect from Host A
+3) [Host A->Host B] SYN flag = unset, set CTL = ACK, set ACK = 301, set SEQ = 101
+*SYN flag is unset confirms the 3-way TCP Handshake is completed successfully
+
+3-way TCP Handshake Simplified
+1) Host A -> Send SYN, SEQ = 100 -> Host B
+2) Host A <- Send SYN, ACK = 101, Send SEQ = 300 <- Host B
+3) Host A -> Send ACK = 301, SEQ = 101 -> Host B
+
+3-way TCP Handshake SYN/ACK Simplified
+1) Host A -> Send Sequence = 5 (Host A expects Acknowledgement of 6) -> Host B
+2) Host A <- Send Ack = 6, Send Sequence = 10 (Host B expects Acknowledgment of 11) <- Host B
+3) Host A -> Send Ack = 11, Send Sequence 6 -> Host B
+
+TCP Window Size / Fixed Windows
+- Maximum number of data segments the sender is allow to send
+Note* Above is a Window Size of "1"
+- If we increase to Window Size of "3", then Host A can send 3 SYN, but only need to receive 1 ACK. Therefore, increasing throughput
+
+TCP Flow Control
+- Prevents issue of sender overflowing the buffers of a receiver if one machine is more powerful than the other, they can negotiate the rate of transmission
+- Tells sending Host to slow down or to stop sending data until the host has its Receive Buffer Ready
+
+TCP Sliding Widnows
+- Rather than using Fixed Window Size, TCP uses sliding windows (window size, initial is small, then increase it exponentially with time) - notice how initial slow download, but then gets fast
+- When packet is dropped, Window Size may be reduced
+- Determining Window Size is either 1) Granted by receiver 2) Congestion Window (CWND) - initially set to very low value, then increases at exponential rate using "congestion avoidance" 
+
+Configure Cisco Router as DHCP Dynamic Host Configuration Protocol and enable DNS:
+Router1#configure terminal
+Router1(config)#ip domain-lookup
+Router1(config)#interface f0/0
+Router1(config-if)#ip address dhcp
+Router1(config-if)#no shutdown
+Router1#show dhcp lease [See DHCP lease]
+Router1#show dhcp server [See DHCP server]
+
+If we do not use DHCP server and without DHCP, DNS and gateway does not automatically populate, we must manually add it:
+Router1#configure terminal
+Router1(config)#ip name-server 8.8.8.8 [DNS setup]
+Router1(config)#ip route 0.0.0.0 0.0.0.0 192.168.1.249 [Gateway of last resort]
+Router1(config)#interface f0/0
+Router1(config-if)#ip address 192.168.1.1 255.255.255.0
+Router1(config-if)#no shutdown
+
+3 DHCP Mechanisms (done on DHCP server, NOT on the client PC)
+1) Automatic Allocation
+- DHCP server to assign permanent IP address to client 
+- IP address lease is set to infinity (no expiration date)
+2) Dynamic Allocation
+- What we think of, when we think DHCP
+3) Manual Allocation 
+- Preconfigure the IP address and MAC address manually on the DHCP server that is going to be allocated to a specific client
+- Different than Automatic Allocation because a Pool or Scope of addresses are created, then they are automatically allocated to devices permanently. Whereas Manual Allocation is allocated to a unique device. 
+
+Configure a Cisco Router as a DHCP Server:
+==Initial Setup==
+Router1#configure terminal
+Router1(config)#int f0/0
+Router1(config-if)#ip address 10.1.1.2 255.255.255.0 ***
+Router1(config-if)#no shutdown
+==DHCP Server setup==
+Router1(config)#ip dhcp pool enterNameOfPool
+Router1(dhcp-config)#network 10.1.1.0 255.255.255.0
+Router1(dhcp-config)#default-router 10.1.1.2 ***
+==DNS Server setup in the same DHCP Server==
+Router1(dhcp-config)#dns-server 10.1.1.2
+Router1(dhcp-config)#lease 7
+==Exclude range/scope==
+Router1(config)#ip dhcp excluded-address 10.1.1.1 10.1.1.10
+==View your DHCP pool/current pool==
+Router1#show ip dhcp pool
+Router1#show ip dhcp binding
+==Get DHCP IP from Router2==
+Router2#configure terminal
+Router2(config)#interface f0/0
+Router2(config-if)#ip address dhcp
+Router2(config-if)#no shutdown
+==To confirm Router2 is working properly==
+Router2#show ip interface brief
+Router2#show ip route
+==To name a client==
+Router2(config-if)#ip dhcp client client-id ascii nameHere
+
+IP helper address:
+- a router can be configured to accept a broadcast request for a UDP service and then forward it as a unicast to a specific IP address
+ex. Router needs to reach a DHCP server on 192.168.2.254
+Router2(config)#int f0/0
+Router2(config-if)#ip helper-address 192.168.2.254
+Router2(config-if)#no shutdown
+
+VLAN Virtual Local Area Network (Logical Switch)
+**Benefits of VLAN over switches
+- no broadcast or multicast storms
+- provides security, you cannot access certain files unless you are on a specific VLAN(logical segmentation of users)
+- easy to modify virtually, no longer a need for switching cables (no longer have to worry about physical topology - focus on logical)
+- better QoS (VoIP on its own VLAN)
+*Note: PCs do not know they are put on VLANs, all they see is standard ethernet frames. It is the switches that provide the tagging
+
+Trucking Protocol
+1) ISL Interswitch Link - Cisco Proprietary Protocol (Old)
+2) 802.1Q - Industrial Standard
+
+802.1Q
+- Has a 4byte "Tag" in the header in addition to the Ethernet header
+
+Ethernet Header: [Dest][Src][Len/Etype][Data][FCS]
+802.1Q Header: [Dest][Src][Tag][Len/Etype][Data][FCS]
+Tag Frame: [TPID (0x8100) - identifies as 802.1Q frame, 16bit or 2bytes][PRI - priority 3bit, used in QoS][CFI - Chronic Format Identifier, used old days, no longer used][VLAN ID - 12bit, value of 0 = no VLAN]
+~12bit in size = 4096VLANs can be created
+**Because the frame is being altered, the FCS Frame Check Sequence will be altered and replaced in the modified frame
+
+Native VLANs
+- Native VLANs are untagged
+
+VLAN port assignments
+1) Static VLAN by Administrator 
+2) Dynamic VLAN using VLAN Membership Policy Server - allows ports to be automatically updated based on MAC address on that port
+3) Voice VLAN
+
+VTP Vlan Trunking Protocol
+- Cisco Layer 2 Protocol
+- Allows for addition, deletion and renaming of VLANs on one switch and that will propagate across trunk links to other switches
+**Avoid** headaches if not properly configured, VTP is disabled by default
+**It can only work over trunk links
+
+==See which interface is trunking==
+Switch#show interface trunk
+OR
+Switch(config-if)#do show vlan brief
+
+Trunking vs Access ports
+**Trunk ports - Permit ALL VLANs - Allows multiple VLANs to traverse a link
+**Access ports - Specify a single VLAN that is allow to transverse
+
+Make a port on a switch to be on VLAN as access port or Trunk port
+1) Create the VLAN (ex. 10)
+Switch#configure terminal
+Switch(config)#vlan 10
+2a) Make f0/0 a trunk port
+Switch(config-vlan)#interface f0/0
+Switch(config-if)#switchport trunk encapsulation dot1q
+Switch(config-if)#switchport mode trunk [allows multiple VLANs to transverse that port]
+Switch(config-if)#switchport nonegotiate [disable auto-negotiate DTP Dynamic Trunking Protocol of trunk ports dynamically]
+2b) Make f0/0 an access port
+Switch(config-if)#switchport mode access [allows a single VLAN access]
+Switch(config-if)#switchport access vlan 10 
+3) Setup VLAN 10's gateway 
+Switch(config-if)#ip address 10.1.11.254 255.255.255.0
+Switch(config-if)#no shutdown
+4) Set Default Gateway on the PC/Router if on different VLANs
+Router#configure terminal
+Router(config)#no ip routing
+Router(config)#ip default-gateway 10.1.11.254 255.255.255.0
+[optional] 5) Enable DTP Dynamic Trunk Protocol
+Switch(config-if)#switchport mode dynamic desirable
+
+Creating sub interfaces on a Router that has 1 physical interface f0/0
+1) Create sub interface f0.0/1 (virtual)
+Router#configure terminal
+Router(config)#interface fastEthernet 0/0.1
+Router(config)#encapsulation dot1Q 1 native (ex. using VLAN 1 as default)
+Router(config)#ip address 10.1.1.254 255.255.255.0
+2) Create sub interface f0.0/2
+Router(config)#interface fastEthernet 0/0.2
+Router(config)#encapsulation dot1Q 2
+Router(config)#ip address 10.1.2.254 255.255.255.0
+
+VTP VLAN Trunking Protocol
+- By default, switches belong to Null Domain and no VTP domains is configured
+- Cisco Proprietary layer 2 proptocol between VLAN 1002-4094
+- Being a layer 2 device, it will communicate trunk links (layer 2) and not through a layer 3 router
+- Does not create trunk ports but requires trunk links to send updates across switches/routers via MAC Address: 01-00-0C-CC-CC-CC (Well known multicast address)
+- Cisco Engineers however will by default disable VTP
+Benefits:
+- Create, dete or rename VLANs on one switch -> propagate to all other switches
+- Default, doesn't belong to a domain, but when it receives an advertisement, it will automatically join a VTP domain
+- Each time a change (new/delete/rename), revision number will automatically increase by 1
+
+Procedure of VTP message:
+1) When a change is made to a Switch 1, Switch 1 will send out a "Summary advertisement" to all other switches
+2) Once "Summary advertisement" is received, those subsequent switches will send a "Advertisement requests" to the Switch 1 requesting information of what was changed
+3) Switch 1 will now send that "Subset advertisement" information to all the other switches
+
+3 types of VTP messages:
+1) Summary advertisements 
+- Sent every 5 minutes or whenever a change is made
+- Used to inform a switch in summary format of latest revision number in the VTP domain
+2) Summary request/advertisement request
+- If a switch sees it is out of date in the VTP domain, it will request for new information
+3) Subset advertisements
+- Send a detailed information of changes made to VLAN database
+
+4 VTP Modes
+**Note, revision number takes presidence (not server, or client)
+1) Server (Default mode)
+- Create/Modify/Delete VLANs
+- Sends and forwards VTP advertisements
+- Can save VLAN configuration locally
+2) Client
+- CANNOT Create/Modify/Delete VLANs
+- Sends and forwards VTP advertisements
+3) Transparent 
+- Disables VTP (no synchronization), allows forward VTP advertisements
+4) Off
+- Disables VTP (no synchronization), not allow to forward VTP advertisements
+
+VLAN versions
+- VLAN 1 (Ethernet) = 1 to 1005 are supported, beyond this use "VTP Transparent Mode"
+- VLAN 2 = 1001
+
+==Create VLAN 1006==
+Switch#configure terminal
+[optional]Switch(config)#vtp domain enterNameHere
+Switch(config)#vtp mode transparent (**remember, client and server does not support any VLAN beyond 1005)
+Switch(config)#vlan 1006 
+==Erase VLANs==
+Switch#erase startup-config
+Switch#delete flash:/vlan.dat 
+==See all VLANs==
+Switch#show vlan brief
+or
+Switch#show run | i Vlan|vlan
+==Rename VLAN==
+Switch(config)#vlan 2
+Switch(config-vlan)#name exampleNameHere
+
+VTP Pruning
+- **ONLY VTP servers can use it
+- VTP allows for automatic pruning and un-pruning of links
+- improve proper allocation and bandwidth by reducing unncessary flooded traffic (broadcast, multicast, etc)
+- will only forward on trunk ports
+- NEVER pruned VLAN 1, >1002
+
+VTP Password
+- By Default, no VTP password configured
+- Only switches that have same password will synchronize with each other
+
+==Join existing VTP Domain from Switch1(ccna) to Switch2==
+*Note Switch1 f0/0 connects to Switch2 g0/0
+1) Set VTP Domain on Switch1
+Switch1(config)#vtp domain ccna
+2) Set dynamic trunk to utilize VTP Domain on the interface connecting to its 0/0
+Switch1(config)#int f0/0
+Switch1(config-if)#switchport mode dynamic desirable
+3) Set Switch1 to trunk mode
+Switch2(config-if)#switchport trunk encapsulation dot1q
+Switch2(config-if)#switchport mode trunk
+4) Set Switch2 
+
+==Enable VTP pruning==
+Switch(config)#vtp pruning
+
+==Show VTP status==
+Switch#show vtp status
+
+===Simulation#1===
+- Configure Switch1 as the VTP server and Switch2 as VTP clients
+- Set the VTP domain name to cisco
+- Set the VTP password to cisco
+- Enable VTP pruning so that inter-switch broadcast replication is minimized
+
+Switch1>en
+Switch1#conf t
+Switch1(config)#vtp mode server
+Switch1(config)#vtp domain cisco
+Switch1(config)#vtp password cisco
+Switch1(config)#vtp pruning
+
+Switch2>en
+Switch2#conf t
+Switch2(config)#vtp mode client
+Switch2(config)#vtp domain cisco
+
+===Simulation#2===
+Create the following VLANs on Switch1:
+- VLAN 10 with a description "HR"
+- VLAN 20 with a description of "Sales"
+- Vlan 30 with a description of "Directors"
+
+Switch1> en
+Switch1# conf t
+Switch1(config)# vlan 10
+Switch1(config-vlan)# name HR
+Switch1(config-vlan)# vlan 20
+Switch1(config-vlan)# name Sales
+Switch1(config-vlan)# vlan 30
+Switch1(config-vlan)# name Directors
+
+===Simulation#3===
+Assume that ports are configured using the default switchport mode of access
+Assign interface FastEthernet 0/3 to VLAN 10 on Switch1
+Assign interfaces FastEthernet 0/4 through FastEthernet 0/20 to VLAN 20 on Switch1 using the interface range command
+
+Switch1> en
+Switch1# conf t
+Switch1(config)# interface f0/3
+Switch1(config-if)# switchport access vlan 10
+Switch1(config-if)# interface range fastethernet 0/4 - 20
+Switch1(config-if-range)# switchport access vlan 20
+
+===Simulation#4===
+Configure the switch as a VTP transparent
+Set the VTP domain to ICND
+
+Switch1> en
+Switch1# conf t
+Switch1(config)# vtp mode transparent
+Setting device to VTP mode transparent
+Switch1(config)# vtp domain ICND
+Changing VTP domain name from NULL to ICND
+
+===Simulation#5===
+Configure Switch1 as a VTP server and Switch2 as a VTP client
+Set the VTP domain to gns3.com
+Set the VTP password to cisco
+Enable VTP pruning
+
+Switch1> en
+Switch1# conf t
+Switch1(config)# vtp mode server
+Device mode already VTP SERVER.
+Switch1(config)# vtp domain gns3.com
+Changing VTP domain name from NULL to gns3.com
+Switch1(config)# vtp password cisco
+Setting device VLAN database password to cisco
+Switch1(config)# vtp pruning
+
+Switch2> en
+Switch2# conf t
+Switch2(config)# vtp mode client
+Setting device to VTP mode client
+Switch2(config)# vtp domain gns3.com
+Changing VTP domain name from NULL to gns3.com
+Switch2(config)# vtp password cisco
+Setting device VLAN database password to cisco
+Switch2(config)# vtp pruning
+
+
+

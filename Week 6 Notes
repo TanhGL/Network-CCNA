@@ -1,0 +1,570 @@
+[Protocols]
+ICMP Internet Control Message Protocol
+SNMP Simple Network Management Protocol
+SNMP Traps - SNMP Traps are alert messages sent from a remote SNMP-enabled device to a central collector, the "SNMP manager"
+Syslog
+WMI Windows Management Instrumentation
+MIB Management Information Base
+Object Identifier
+Performance Counter
+
+NPM Network Performance Management
+
+2 types of Network Management Protocols
+*****USE BOTH*****
+> NMS Network Management System
+1) Query-Based Network Management Protocol
+**NMS sends a query to extract information, then waits for response
+[Advantage] Reliable - query and waits for return message
+[Disadvantage] Slow to react = Could be queried/poll every 5 minutes, therefore it could take 5 minutes for action
+- If NMS queries and does not get a response -> problem
+- a.k.a Polling based Network Management - can be scheduled and frequency
+2) Event-based
+**NMS listens for possible announcements/events
+- Syslog, SNMP trap based
+[Disadvantage] Not reliable - passively waiting, event errors might not arrive
+[Advantage] Acts quickly = Immediate, once event has taken place (SNMP trap)
+*****USE BOTH*****
+
+Network Availability
+- 5 9s -> 99.999% ~ 5 minutes of downtime a year
+- 4 9s -> 99.99% ~ 52 minutes of downtime a year
+
+Collect Data remotely
+- Distributed NMP Network Management Architecture vs Single Centralized NMS
+~ Multiple Data Centres and Multiple Copies of NPM forwards to EOC Enterprise Operation Console
+
+Network Reachability
+- SNMP & ICMP (important to NMP Network Management protocol) may be blocked by Network Engineers - reliability issue 
+> Bypass this by allowing certain subnets through
+> Bypass this by allowing Management VLAN with ACL and Firewall rules disabled
+
+NMP Network Management Protocol
+[SolarWinds]  
+Fault Management -> uses ICMP/ping. If no ping response, then NMS assumes device is down
+[Orion]
+Fault Management -> If no ping response, placed in 'Mode Warning Stage', then Orion will 'fast poll of device' will monitor the device for 120s before Orion notifies you device is down
+
+NMS vs SNMP
+NMS (ICMP/Ping): no ping response, assumes device is down
+SNMP: queries the device, if SNMP says it is down, then NMS can confirm it is down
+
+ICMP/Ping vs SNMP vs WMI Windows Management Instrumentation
+ICMP/ping - availiability calculations, latency response timers
+SNMP - everything else
+WMI - checks for performance counter type values
+
+*When NMS sends Data along with its Ping request because the device's Firewall being pinged might block:
+- 0 size Data field
+- large payload
+- odd in size
+
+SNMP 
+- UDP (port 161)
+
+Network Protocols MIBs vs OIDs
+> MIBs Management Information Bases
+- Larger entity
+- Use for managing entities in a Network (SNMP)
+- Hierarchy database / Tree-structure
+- Each entry in MIB is addressed with an OID
+> OIDs Object Identifiers
+- Included within MIB
+Performance Counters
+**ex. MIBs would be used for polling statistics on a router, whereas OIDs would be polling a specific interface (object identifier) on that route
+**ex. In wireshark, captured SNMP data has 1.3.6.1.2.1.2.2.1.2.2: 46617374457468...
+> MIB: 1.3.6.1.2.1.2.2.1.2.2
+> OID: 46617374457468...
+> These values' meaning can be determined with Solarwinds, with inside NMM
+
+Syslog Protocol
+Numerical         Severity
+             Code
+              0       Emergency: system is unusable (ex. System shutting down)
+              1       Alert: action must be taken immediately (ex. temperature reached)
+              2       Critical: critical conditions (ex. memory allocation error)
+              3       Error: error conditions (ex. Interface up/down messages)
+              4       Warning: warning conditions (ex. Configuration file written by SNMP request)
+              5       Notice: normal but significant condition (ex. Line protocol down)
+              6       Informational: informational messages (ex. Access List violation)
+              7       Debug: debug-level messages
+ex. *Mar 1 00:06:38.895: %SYS-5-CONFIG_I: Configured from console by console
+> 5 is the Syslog Code
+
+==See Logging==
+R1#show logging
+==Change Console/Monitor Logging level==
+> If you change logging level to 5, then only 0-5 is enabled, similar 4, then only 0-4
+> Change console to 5 and monitor to 3 (error)
+R1#conf t
+R1(config)#logging console 5 or notice
+R1(config)#logging monitor error or 3
+==Disable commands being retyped in Console==
+R1(config)#line console 0
+R1(config-line)#no logging synchronous
+==Enable OSPF on Adjacency events==
+R1#debug ip ospf adj
+==Setup passwords/Telnet to 192.168.1.223==
+R2#conf t
+R2(config)#line vty 0 4
+R2(config-line)#login
+R2(config-line)#password cisco
+R2(config-line)#exit
+R2(config)#enable password cisco
+**By default, terminal monitor function is turned on by default on Console. However, for monitor (cmd/VTY - via Telnet), we must use the following command: "R1#terminal monitor"
+==Disable console logging==
+R1#conf t
+R1(config)#no logging console
+==Enable Buffered Logging Level & Size==
+R1#conf t
+R1(config)#logging buffered 7 
+R1(config)#logging buffered 64000 [size]
+==View the buffered log/search==
+> After buffer is turned on (off by default), you can view the log
+R1#show log
+R1#show log | include BDR
+**Notice: logs can become quite extensive, therefore it will be better to have a Syslog server
+==Log content (Must have GNS3 and Kiwilog enabled)==
+> Kiwilog server is 192.168.1.108 and trap debugging (7)
+R1#conf t
+R1(config)#logging 192.168.1.108
+R1(config)#logging trap 7
+==Add Syslog sequence number==
+R1#conf t
+R1(config)#service sequence-numbers
+> Other functions...
+R1(config)#service timestamps log datetime msec (millisecs) year
+R1(config)#service timestamps log uptime
+
+> Cisco Router
+**Currently, Cisco routers copies the entire Cisco IOS into RAM during boot process
+==Information==
+R1#show version
+R1#show flash
+R1#show run
+R1#show start
+R1#erase start
+==Copy running-config to flash==
+R1#sh run | redirect flash:/showruntest.cfg
+> To view this new file
+R1#more flash:/showruntest.cfg
+
+ROM Read-Only Memory
+- ROM stores the routers bootstrap startup program, operating system software, and power-on diagnostic test programs (the POST)
+- 'ROM Monitor' used for password recovery, Router Disaster Recovery, Upload Router OS - think 'Safe Mode'
+
+Flash (Non-Volatile)
+- Flash is erasable and reprogrammable ROM (permanent storage)
+- Flash memory content is retained by the router on power-down or reload
+
+RAM (Volatile)
+- RAM on a Cisco router stores operational information such as routing tables and the running configuration file. 
+- RAM contents are lost when the router is powered down or reloaded
+- RAM holds the running configuration file
+**How much ram in R1#show version ... 239616K/22528K bytes of memory?
+> 239616+22538=262154
+> 262154/1024=256
+> 256Mbs ram
+
+NVRAM (Non-Volatile)
+- If NVRAM is empty, you will be prompted to enter setup mode
+- NVRAM holds the startup configuration file (configuration register)
+
+Configuration Register
+**16 bits
+R1#show version
+> Configuration register is 0x2102 (default)
+> This is in hexadecimal because of '0x'
+> 0010 0001 0000 0010
+> The last digit is how the router boots = 'boot field'
+==Change register to 0x2100==
+R1(config)#config-register 0x2100
+> 0x2100 is ROMMON mode, because last digit of 'boot field' of 0 is ROMMON
+
+boot field (last digit)
+0 = ROMMON
+1 = ROM/Flash
+2 = Cisco IOS
+
+***Memoriable for CCNA
+0x2102 to 0x210F - Normal Mode
+0x2101 - RxBoot Mode (boot using first OS in flash)
+0x2100 - ROMMON Mode
+0x2142 - Bypass Startup Config
+
+**Router bootup process
+1) Perform POST Power-on Self-test 
+2) Loads using bootstrap code (only for loading)
+3) Finds Cisco IOS software - if not available, boots into ROMMON
+4) OS loaded into RAM, router finds startup configuration in NVRAM
+5) This startup configuration then loads into NVRAM and becomes current running configuration
+6) Runs configured IOS software
+
+**How Cisco routers locate boot configuration
+1) Checks for boot field
+2) If not boot field, boots in Flash and boots in 1st IOS image
+3) If no file in flash, boots from TFTP server (using 'slop')
+4) If none is available, then loads ROMMON
+
+Cisco IOS IFS Integrated File System
+==Create directory (flash) similar to Windows explorer/folders==
+R1#mkdir flash:/test (make directory)
+==Redirect running-config to that flash file above==
+R1#show running-config | redirect flash:/test/shrun.cfg
+==Read that file in that directory==
+R1#more flash:/test/shrun.cfg
+
+Cisco IOS systems
+R1#show file systems
+*'opaque' is for internal functions/commands
+*'network' is external file system of different servers
+*'disk' is used for flash
+*'nvram' is used for start-up config
+==Copy nvram file to flash==
+R1#copy nvram:startup-config flash:/copystart.cfg
+==Backup IOS to TFTP Server==
+R1#copy flash:insertFileNameHere tftp:insertIPAddyHere
+**Note. TFTP has not security mechanism. SecureCopy has security.
+==Upgrade IOS image from TFTP server==
+> Make sure flash has enough space
+R1#show flash
+> Copy image from TFTP to flash
+R1#copy tftp: flash:
+> Once done, reboot
+R1# boot system flash: fileNameHere
+
+Cisco IOS naming conventions
+ex. c2900-universalkh-mz.SPA-152.4.M1.bin
+c2900 = Platform 2900 Cisco Router
+universal k9 = Universal feature set
+mz = File format- m(runs in RAM), z(compressed)
+SPA = Special Image, Production (approved production image), A (key version A,B,C)
+152-4.M1 = Software verison number
+
+==Password Recovery==
+**Step (1-4) can be achieved by sending a 'break' in PuTTy to break out of the boot cycle and immediately enter ROMMON mode
+1) Switch off router
+2) Remove compact flash
+3) Switch on router
+4) In ROMMON mode, reinsert flash
+rommon>confreg 0x2142
+rommon>reset
+5) Enter 'no' to setup questions
+Router>enable
+Router#copy startup-config running-config
+6) Setup new Password (old password is unknown)
+Router#conf t
+Router(config)#enable secret cisco
+Router(config)#config-register 0x2102
+Router(config)#end
+Router#copy running-config startup-config
+**config-register saves automatically to startup-config!!!
+
+Cisco IOS Passwords
+==Setup enable password==
+> Configure UNENCRYPTED enable password of cisco
+R1>en
+R1#conf t
+R1(config)#enable password 'cisco'
+> To enable encryption (only useful for someone standing behind you. It can be decrypted with a tool)
+R1(config)#service password-encryption
+> Configure ENCRYPTED enable password properly of 'cisco'
+**MD5 hashing encryption 128bit
+R1(config)#enable secret 'cisco'
+
+
+==View services/ports running==
+R1#show control-plane host open-ports
+==Disable services==
+> Disable dns server 
+R1#config t
+R1(config)#no ip dns server
+> Disable DHCP pool test
+R1(config)#no ip dhcp pool test
+> Disable Telnet (should use SSH)
+R1(config)#no telnet
+> Disable CDP Cisco Discovery Protocol
+**Dangerous because R1#sh cdp neighbors
+R1(config)#int f0/1
+R1(config-if)#no cdp enable
+
+==Setup UserMode / Console password==
+> Console password ONLY
+Switch#conf t
+Switch(config)#line 0
+Switch(config-line)#password cisco
+Switch(config-line)#login
+> Console user & password
+Switch#conf t
+Switch(config)#username david password cisco
+Switch(config)#line 0
+Switch(config-line)#login local
+> Console user with immediate privledge mode access
+Switch#conf t
+Switch(config)#username david privledge 15
+> Set inactivity timer
+Switch#conf t
+Switch(config)#line console 0
+Switch(config-line)#exec-timeout 5 0
+
+==Setup VTY (Telnet) lines==
+Switch1#conf t
+Switch1(config)#line vty 0 4 (5 sessions, 0 1 2 3 4)
+Switch1(config)#password cisco
+Switch1(config)#login
+==Show VTY (Telnet) lines==
+Switch1#show users
+==Disconnect a user from VTY line==
+> TTY line 98
+Switch1#clear line 98
+> VTY line 0
+Switch1#clear vty line 0
+
+==Connect to VTY lines== 
+> Connect to 4 sessions
+R1#telnet 10.1.1.2
+R1#telnet 10.1.1.2
+R1#telnet 10.1.1.2
+R1#telnet 10.1.1.2
+==Select a session==
+> Show session
+R1#show session
+> Resume sesison 2
+R1#2
+==Disconnect session==
+> Disconnect 3
+R1#disconnect 3
+
+==Enable SSH Secure Shell==
+> Specific hostname and domain name
+R1#conf t
+R1(config)#hostname R1
+R1(config)#ip domain-name cisco.com
+R1(config)#username david secret cisco
+R1(config)#crypto key generate rsa modulus 1024 (larger of this key, the more secure)
+> Show current SSH connections
+R1#show ssh
+==Disable Telnet, enable only SSH==
+R1(config)#line vty 0 4
+R1(config-line)#transport input ssh 
+// Or vice versa
+R1(config-line)#transport input telnet
+// Or BOTH
+R1(config-line)#transport input ssh telnet
+==Connect to SSH==
+> Connect to 10.1.1.2 with the userName David
+R2#ssh -l david 10.1.1.2
+
+==Setup BOTD Banner of The Day==
+> Login banner (displays before login)
+R1#conf t
+R1(config)#banner login #thisIsLoginBanner#
+> Executive banner (displays after login)
+R1(config)#banner exec #thisIsExecBanner#
+> MOTD
+R1(config)#banner #thisIsMessageOfTheDay#
+                                
+==View license==
+R1#show license udi
+*License UDI Universal Device Identifier = PID Product Identifier + SN Serial Number
+
+**IOS before and current
+[Before - ISR G1 Integrated Services Routers] 
+- Default, universal license is loaded with basic features
+- Extended features are loaded with a purchase of new IOS
+[Current - ISR G2]
+- Default, universal IOS is loaded with all features, but features are unlocked through the use of licenses
+
+ISR G1
+5 Basic IOS Images
+1) IP Base
+- Entry level Cisco IOS Image
+2) IP Voice
+- VoIP, VoFR, IP Telephony
+3) Advanced Security
+- IOS Firewall, IPSec, 3DES, VPN, IPS, SSH
+4) SP Service Provider Services 
+5) Enterprise Base
+- IPX, Apple Talk, IPv4
+
+ISR G1
+3 Combination IOS Images
+6) Advanced IP Services (3+4)
+- IPv6
+7) Enterprise Services (4+5)
+- Full IBM Support
+8) Advanced Enterprise Services
+- Full Cisco IOS Feature Set
+
+Problem with ISR G1
+- If you only want selected features from selected IOS, then you have to purchase the Advanced Enterprise Services
+
+**ISR G2 - CCNA needs to know this
+1) IP Base (ipbaseK9)
+- Basic set of IOS features
+2) Data (dataK9)
+- Supports MPLS, ATM, multiprotocols
+3) Unified Communications (ucK9)
+- Support VOIP and Telephony
+4) Security (securityK9)
+- Cisco Firewall, IPS, IPsec, 3DES, VPN
+
+License Types
+1) Permanent
+2) Temporary - 60 days (continue to operate normally until reload - reload will revert to default)
+3) Feature - features are checked for their licenses before enabling themselves
+
+==Load temporary license==
+2921-B#conf t
+2921-B(config)#license boot module c2900 technology-package uck9
+2921-B(config)#end
+2921-B#write
+==Install license==
+> Once gathered from Cisco (XML License)
+2921-B#license install flash:/all_licenses.lic
+==Remove license==
+2921-B(config)#license boot module c2900 technology-package uck9 disable
+2921-B(config)#end
+2921-B#write
+> Once reloaded
+2921-B#license clear uck9
+2921-B#conf t
+2921-B(config)#no license boot module c2900 technology-package uck9 disable
+==Save current license==
+2921-B#license save flash:all_licenses.lic
+
+~Cisco PAK Product Authentiation Key - license key (receipt)
+
+DHCP Snooping
+**Layer 2 security feature in an ethernet switch environment
+'bootp'
+- Sets Trusted/Untrusted ports
+- Prevent Rogue DHCP servers, man-in-the-middle attacks
+- All ports are untrusted by default, you have to explicit a specific port as trusted for that port for DHCP Snooping to allow the DHCP server on that port. If it is untrusted, the untrusted port will not be able to receive DHCP messages
+**Switch will build a DHCP Snooping Binding Database (MAC Address, IP Address, VLAN of host), this Database can be leverage by other security features
+
+Dynamic ARP inspection
+- Leverage DHCP Snooping database to protect against ARP poisoning
+- Intercepts all untrusted ports' ARP requests and replies and match those in DHCP Snooping database
+
+==Show DHCP leases==
+R1#show ip dhcp binding
+==Enable DNS on router==
+R1#conf t
+R1(config)#ip dns server
+R1(config)#ip domain-lookup
+
+Man-in-the-middle
+> Setup rogue DHCP server and provide the IP to the user
+> User -> Rogue DHCP server -> Real Gateway
+1) ip route 0.0.0.0 0.0.0.0 10.1.1.254 (rogue DHCP server)
+2) enable NAT (ex. if user wants to to get their router name MyRouter, then we can set 2a)
+2a) rougeRouter(config)#ip host MyRouter 10.1.2.254 (MyRouter's own gateway - translating the name to an IP address)
+
+==Enable DHCP Snooping on switch==
+Switch1#conf t
+Swtich1(config)#ip dhcp snooping lan 1 [enabled on VLAN1]
+Swtich1(config)#ip dhcp snooping [enabled globally]
+==Enable trusted ports (because default, all untrusted)==
+> Assume g0/0 on switch is DHCP server
+Router1#conf t
+Router1(config)#interface g0/0
+Router1(config-if)#ip dhcp snopping trust
+
+Port Security
+- Restrict a port to a single MAC Address or limit the # of MAC Addresses (1 for ex., now Hubs/APs cannot use it) that can be learned
+- Violation: port shutdown or frames being dropped
+*"Sticky Learning" - automatically add a learnt MAC Address to running config (you can then save the running-config to startup-config)
+
+Port Security Violations
+1) Protect - Drop packets from unknown source MAC Address
+2) Restricted - Protect + generation of log message + security violation counters will increment
+3) Shutdown - Puts into Error disabled mode
+
+
+==Setup port security==
+> Show port security
+S1#show port-security
+S1#show port-security address
+==Enable port security automatically==
+>Enable port security on G0/0 automatically
+**First... setup port as access port and trunk port
+S1#conf t
+S1(config)#int g0/0
+S1(config-if)#switchport mode access [makes the port as Access port]
+S1(config-if)#switchport port-security [enable port-security]
+==Enable port security manually==
+> Enable port security on G0/1 with MAC address 0023.3300.0003
+S1(config-if)#switchport mode access 
+S1(config-if)#switchport port-security mac-address 0023.3300.0003
+S1(config-if)#switchport port-security
+> Set violation
+S1(config-if)#switchport port-security violation shutdown 
+==Enable port security manually - sticky==
+S1(config-if)#switchport port-security mac-address sticky
+==Set violation type==
+> Also set timer to 30secs
+S1#conf t
+S1(config)#errdisable recovery cause psecure-violation
+S1(config)#errdisable recovery interval 30
+
+3 A's
+1) Authentication
+- Authentication of Username and Password
+2) Authorization
+- What you are allowed to do after authentication
+3) Accounting
+- Log of what happened on a network
+
+IEEE 802.1X Identity Based Authentication/Networks
+- Implement identity based networking, user must present username/password before they can gain access to network
+**Radius/Tacacs is used between the authenticator (switch) and the authentication server
+
+Radius
+- Combines Authentication and Authorization
+- UDP
+- Port 1645, 1812
+- Password encryption on single packets
+
+Tacacs+
+- Cisco priorietary - setup which users can do what
+- Authentication, then Authorization and Accounting is separate
+- TCP
+- Port 49
+- Password encryption on entire packets
+
+TACAS Server (Before)
+==Enable AAA authentication==
+R1#conf t
+R1(config)#line console 0
+R1(config)#aaa new-model [Disables OLD access control commands - login / login local no longer works]
+==Setup local/backup username==
+R1(config)#username david password cisco
+==Direct authentication to ACS Access Control Server and setup TACACS+ key==
+> ACS located 10.1.1.1
+R1(config)#tacacs-server host 10.1.1.1
+> Set key-encryption password, this is used to communicate with ACS
+R1(config)#tacacs-server key cisco
+==Setup Authentication==
+> Here, you can setup when ppl go to enable mode,botd for which user, list of logins...
+> default = will apply to all lines on router - console, aux, vty, tty
+> local = if tacacs server is unavailable, then local usernames/passwords will be used
+R1(config)#aaa authentication login default group tacacs+ local 
+
+****TACAS Server Groups (Modern) - CCNA exam
+==Configue TACAS server groups==
+> Server IP 10.1.1.1
+R1#conf t
+R1(config)#aaa new-model
+R1(config)#username david password cisco [local backup]
+> Point to ip address of the TACACS server named 'acs'
+R1(config)#tacacs server acs
+R1(config-server-tacacs)#address ipv4 10.1.1.1
+R1(config-server-tacacs)#key cisco
+R1(config-server-tacacs)#exit
+> Setup our AAA group using TACACS server called 'acs' -> name this group 'acsgroup'
+R1(config)#aaa group server tacas+ acsgroup [nameOfGroup]
+R1(config-sg-tacas)#server name acs
+R1(config-sg-tacas)#exit
+> Setup all lines such that 'acsgroup' will be used for AAA. If unavailable, local is useds
+R1(config)#aaa authentication login default group acsgroup local [local is used as backup]

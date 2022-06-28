@@ -1,0 +1,711 @@
+Network Protocol
+- Language that governs communication between networking devices
+
+Cost of route
+- The number of routes (jumps) it takes to go from one interface to another
+
+SOHO 
+- Small office & Home office
+
+tracert 
+- tracert is amount of hops to destination
+
+Logical topology
+- Path of how data is transferred between devices
+
+Physical topology
+- Physical arrangement of a network (cables, devices)
+
+DNS Domain Name System
+
+Speed (bits per second)
+(bytes = 8 bits)
+
+Uptime vs Availability
+- Uptime = Number of minutes / Total number of minutes in a year [525600]
+- Availability = ((Total number of minutes in a year-Downtime in minutes)/(Total number of minutes in a year ))* 100
+
+Bus topology
+- All devices connected in a line that branches off
+
+Ring topology
+- Cabled together, first device connected to last device
+- Each device connected to 2 device
+
+Star topology
+- Star shape, all devices connected to a central switch
+
+Mesh topology
+- One device connects to multiple devices -> increase redundency
+
+OSI Model (Open System Interconnect Model) - created by International Organization for Standardization (ISO)
+Please do not throw sausage pizza away
+- Application
+- Presentation
+- Session
+- Transport (TCP/UDP)
+- Network (IP Address, Router, Layer 3 switch)
+- Datalink (Mac Address, Bridge, Switches)
+- Physical (RJ45, Hubs, Physical Interfaces)
+*Each layer is independent of each other
+
+Layer 7 Application Layer
+- FTP, Telnet, HTTP
+- Use protocols to communicate with lower layers
+- Provides network services to application, user authentication
+- Not talking about individual application
+- Talking about application protocol, not the application itself
+
+Layer 6 Presentation Layer
+- Ensures that data sent by one application is "readable" by another application (MP3 can be listened to online with Windows and iOS because data is presented in a format that both side understands)
+- Formats data to be presented to application layer
+- Negotiates data transfer syntax for application layer
+- Provides encryption
+- This data must be changed to "Machine independent format"
+~ Imagine opening a JPG in Notepad
+
+Layer 5 Session Layer
+- Establish, maintain and terminate of sessions between applications
+- Two application processes on different machines can establish session
+ex. NetBIOS (Network Basic Input/Output System)
+ex. PPTP (Point-to-Point Tunneling Protocol)
+
+Layer 4 Transport Layer
+- Message segmentation: segment the message in the upper layers into smaller units, then passes it down to Network layer for sending
+- Handles transportation issues between hosts
+- Ensures data transport reliability
+- Flow control, makes sure it is not transferring more data than it can process
+- Sessoin Multiplexing, multiple messages streams or sessions onto one logical link 
+1) TCP (Transmission Control Protocol) 
+	- reliability, maintains, and terminates virtual circuits
+	- TCP 3-way handshake
+	- If paket is missing, it will be retransmitted
+2) UDP (User Datagram Protocol) - 
+	- Does not provide reliability
+	- If packets dropped, they are lost, does not retransmit lost packet
+
+Layer 3 Network layer
+- This layer is all about Data Delivery, how it routes data from one device to another 
+- Concern with path determination
+- 3 routing protocols in Layer 3 switches (router capable)
+1) OSPF (Open Shortest Path First)
+2) BGP (Border Gateway Protocol)
+3) IS-IS (Intermediate Systems to Intermediate Systems)
+*No reliability at this level. Must depend on TCP. If UDP is used, application layer need to provide reliability. Ex. TFTP uses UDP at Layer 4, and IP at Layer 3 = no reliability. Therefore, TFTP must provide reliability
+
+Layer 2 Data Link
+- Concerns with how data is formatted for transmission 
+ex. Ethernet -> use MAC address XXXYYY = 48bits (made from OUI Organization Unique Identifier XXX + Unique Portion YYY)
+- MAC Address is flat address structure VS IP Address is logically assigned. Therefore, Data Link does 
+- Provides error detection
+- Data link formats according to the type of Media (Ethernet, WAN link) into the appropriate Physical Link 
+
+Layer 1 Physical
+- Physical Device and Physical Cabling
+- Specs of these media types
+
+TCP/IP model
+- Application Layer
+- Transport Layer
+- Internet Layer
+- Network Access Layer
+
+Host Communication:
+- Layer 7 only talks to Layer 7 through encapsulation and decapsulation, similarly 1 -> 1 
+- Encapsulation puts "header" onto the user data from L7 to L2, then FCS Frame Check Sequence occurs at the end to ensure there is no corruption 
+[User Data]
+[L7 Hdr][User Data]
+[L6 Hdr][L7 Hdr][User Data]
+[L5 Hdr][L6 Hdr][L7 Hdr][User Data]
+[L4 Hdr][L5 Hdr][L6 Hdr][L7 Hdr][User Data]
+[L3 Hdr][L4 Hdr][L5 Hdr][L6 Hdr][L7 Hdr][User Data]
+[L2 Hdr][L3 Hdr][L4 Hdr][L5 Hdr][L6 Hdr][L7 Hdr][User Data] FCS
+[Bits]
+---through Physical Media as bits (0,1) ---
+
+Transport layer transmits "Segments"
+Network layer transmits "Packets"
+Data Link layer transmits "Frames"
+Physical layer transmits "Bits"
+
+Protocol Data Unit (PDU) = segments, packets, frames, bits
+
+Bits (0,1)
+128 64 32 16 8 4 2 1
+
+Hexadecimal (0-F)
+0,1,2,...,9,A,B,...,F
+0,1,2,...,9,10 (1010),11,...,15 (1111)
+ex. 128 = 1000 0000 = 8 0 or 80 (Hexadecimal)
+ex. 240 = 1111 0000 = 15 0 or F0 (Hexadecimal)
+
+ipconfig /all | more
+arp -a
+telnet (ip)
+
+Change MAC address of computer (NIC -> Configure -> Network Address)
+
+*Ping requires ICMP Internet Control Message Protocol
+
+RFC1918 Addresses
+- Private address 10.1.1.1
+
+IP Characteristics
+- Layer 3 or network layer protocol
+- Connectionless, no sessions formed. TCP on the other hand is connection oriented
+- packets treated independently of other packets (packets can take different paths to get to destination)
+	-> these packets go through "Routing Protocol" where it determines the bestpath from A to B (bandwidth, hopcount, load balancing)
+- NO guranteed delivery or data loss recovery (corruption), IP uses "best effort delivery", again TCP will be needed if guranteed is requried
+
+Recap IP:
+- no builtin sessions
+- no builtin retransmission
+- TCP is needed to handle dropped, corrupted, and misdirected packets. IP relies on higher level protocol for those requriements
+
+Before TCP can be established and any data transmitted, 3-way handshake
+(Transmitter) SYN -> (Receiver)
+(Transmitter) <- SYN ACK (Receiver)
+(Transmitter) -> ACK (Receiver)
+
+Address Classes IPv4
+- Class A (unicast)
+- Class B (unicast)
+- Class C (unicast)
+- Class D - multicast (one device talking to a group of device, rather than 1 to 1)
+- Class E - reserved for future or experimental purposes
+* classful addresses superseeded by CIDR (classless interdomain routing) in 1993
+* allocated by Internet Assigned Numbers Authority (IANA)
+
+Class A (start with binary 1 - 1XXXXXXX)
+- first 8 bits = network
+- Start with 1, end with 126  1.0.0.0 - 126.255.255.255
+- 0 is reserved for default network, and 127 is reserved for loopback
+- [00000000 network],[00000000,00000000,00000000 hosts]
+
+Class B (start with binary 10 - 10XXXXXX)
+- first 16 bits = network
+- Start with 128, end with 192 128.0.0.0 to 191.255.255.255
+- [00000000, 00000000 network],[00000000,00000000 hosts]
+
+Class C (start with binary 110 -> 110XXXXX)
+- first 24 bits = network
+- Start with 192, end with 223 192.0.0.0 to 223.255.255.255
+- [00000000, 00000000,00000000 network],[00000000 hosts]
+
+Class D - multicast 
+- 224.0.0.0 - 239.255.255.255
+
+Class E - reserved for future or experimental purposes
+- 240.0.0.0 - 255.255.255.255
+
+Directed Broadcast Address
+- Host sends data to all devices on a specific network
+- It is when all host bits at set to 1s
+ex. network 172.31.0.0 => broadcast 172.31.255.255
+- Routers can route directed broadcast, but it is disabled by default to prevent hacking utilities (ex. Smurf) performing DoS attacks
+
+Local Broadcast Address
+- communicate with all devices on local network
+- address is all binary 1s 255.255.255.255
+ex. host requests an IP address from DHCP server Dynamic Host Configuration Protocol
+- local broadcast address is ALWAYS dropped by router, however this can be bypassed with DHCP forwarding or DHCP relay
+ex. device B (vlan 10) connects through a router A to the DHCP server (vlan20) through a router. However, it broadcasts out DHCP request, but blocked by router A. When DHCP forwrading or relay is turned on, then router A blocks this broadcast request, but proxies a unicast DHCP request to the DHCP server on behalf of device B
+
+Local loopback address
+- 127.0.0.1 -> system send a message to itself (anything in range 127.X.X.X is loopback, anyone can be used to test this TCP/IP stack is correctly installed on a machine)
+- Notice 127.0.0.1 is class A, therefore design flaw of IPv4 to use this class A address for this purpose, loses 16 million addresses
+- IPv6 uses "::1"
+*Routers and Switches loopback address ("loopback interface") is different than Local loopback address
+
+Private Addresses
+- Request for Comments is a formal document (Internet Engineering Task Force IETF drafted by a community from multiple vendors), changes can be made only by another RFC - it can be superseeded
+- Internet Standards
+- RFC1918: private IP addresses are non routable addresses on the internet, blocked by ISP
+Blocked by IANA Internet Assigned Numbers Authority
+	-> 10.0.0.0-10.255.255.255
+	-> 172.16.0.0-172.31.255.255
+	-> 192.168.0.0-192.168.255.255
+- RFC3927: IPv4 Link-Local Addresses, Automatic Private IP Address (APIPA) by Microsoft. Range 169.254.0.0 /16. Allows devices through a cable or local segment (switch) to communicate to each other when no DHCP server is available without configuration. Host would randomly generate the host specific part of the address
+
+Subnet Mask
+- Local vs Remote
+-> if the network portion of the device A is the same as device B, then A and B are on the same network - hence, local - otherwise the A is remote to B
+
+Discontiguous Subnet Mask
+- Subnet mask must start with Binary 1s and afterwards 0s have to be together ex 255.240.0.0 = 11111111.11110000.00000000.00000000
+- Discontiguous subnet mask is inconsistent, ex. 240.255.3.191 = 11110000.11111111.00000110.11000000
+*Discontiguous subnet mask is not supported by Cisco devices
+
+CIDR (Classless InterDomain Routing - introduced in 1993)
+- Replaced classful IP addressing
+- Variable Length Subnet Mask (VLSM)
+ex. CIDR notation = /24 instead of 255.255.255.0 or /11 = 255.224.0.0 (not on Octet)
+
+Cisco IOS Internetwork Opreating System 
+- Cisco's OS
+- Connecting routers via Console Port
+
+Cisco IOS shortcuts
+- ? for help
+- Ctrl + C to cancel out current operation
+- Ctrl + Shift + 6 to abort ping or tracert
+- Ctrl + Z to get back to Privledge Mode
+- Ctrl + A to get to the beginning of the line
+- Ctrl + E to get to the end of the line
+- Ctrl + D to delete
+- Ctrl + U to remove entire line
+
+Cisco IOS misc:
+- enable secret is encrypted password [should not be used]
+- enable password is shown in cleartext in running & saved configuration [should not be used]
+- VTL lines are used for Telnet and SSL connections
+
+Cisco IOS modes
+1) User Mode 
+=> Type "enable" in User Mode to enter Priviledge Mode/Enable Mode
+Router>
+Router>enable
+Router#
+*View Only Mode - no execution
+*By default - no authentication needed
+
+2) Priviledge Mode 
+=> Type "configue terminal" in Priviledge Mode/Enable Mode to enter Global Configuration Mode
+Router#
+Router#conf t
+Router(config)#
+
+3) Global Configuration Mode
+=> Type "int f0/0" in Global Configuration Mode to enter Interface Mode
+Router(config)#
+Router(config)#int f0/0
+Router(config-if)#
+*Change hostname
+Router(config)# hostname newNameHere
+*Change banner motd (notice, delimiting character ot start and finish the motd)
+Router(config)# banner motd #dflsjfkljdfs# 
+
+4) Interface Mode
+Router(config-if)#
+*Change interface configuration ip address, type "ip address 10.0.0.1 255.255.255.0" to change IP address
+Router(config-if)# ip address 10.0.0.1 255.255.255.0
+
+5) Line Mode 
+- Line Console Mode (configuring console port) ex. line console 0
+*Setting password for Console before access to User Mode Router>
+Router(config)# line console 0
+Router(config)# login (this makes it required that a password is needed. login or password sequence does not matter)
+Router(config)# password enterPasswordHere
+- Line VTY Mode (configuring Telnet/SSH) ex. line vty 0 4 (to configure the first 5 vty ports)
+*Specify routing protocol (ex. RIP) - will be covered later
+Router(config)# router rip
+
+[commands] Cisco IOS commands
+Switch# show mac address-table
+Router> show version
+Router> enable
+Router# show startup configuration
+Router# show startup configuration | include hostname [only viewing hostname]
+Router# show running-config 
+Router# show running-config | begin vty [looking at a particular interface]
+Router# show ip interface brief 
+Router# show ip interface g0/0
+Router# copy running-config startup-config [saves RAM to NVRAM] - MERGE, not overridden
+Router# configure replace nvram:startup-config - REPLACEMENT (preferred if entire replacement)
+Router# erase startup-config 
+Router# copy running-config tftp: > 192.168.XX.XX
+Router# copy startup-config tftp: > 192.168.XX.XX
+Router# copy tftp running-config > 192.168.XX.XX > sourceFileName [merge running-config from tftp] - MERGE of running-config
+Router# copy tftp startup-config > 192.168.XX.XX > sourceFileName [copy startup-config from tftp] - REPLACEMENT startup-config in NVRAM
+Router# configure replace tftp://192.168.XX.XX/sourceFileName [copy running-config from tftp] - REPLACEMENT of running-config
+Router# show flash [files can also be stored in flash]
+Router# copy running-config flash:run1.cfg [copying files to flash]
+Router# copy startup-config flash:/start.cfg [copying files to flash]
+Router# more flash:run1.cfg [viewing content from stored flash]
+Router# more flash:/start.cfg [viewing content from stored flash]
+Router# wr [write memory - builds startup configuration]
+Router# terminal length X [shows amount of terminal length or 0 to show all - default is 24]
+Router# no ip domain lookup [prevents a command waiting to timeout when resolving DNS]
+Router# debug ip icmp [on the router, when a computer tries to ping the router, you can see the result]
+Router(config)# ip dhcp pool NAME [DHCP pool on router]
+Router(config)# ip dhcp excluded-address ipAddressStart ipAddressEnd [exclude IP address from DHCP pool]
+Router(dhcp-config)# default-router ipOfGateway [Gateway]
+Router(dhcp-config)# dns-server ipOfDNSServer [DNS Server]
+
+Summary:
+- copy running startup [override - overriding startup config with running config]
+- copy from Startup config to running config [merge]
+- configure terminal is a merge of configuration
+- copy tftp:running [merge - copying from tftp to running config]
+- copy tftp:startup [replacement]
+- backup with copy run tftp: or copy start tftp:
+
+Subnetting
+ex. 172.16.35.123 /20 
+== 172.16.01000011.123 255.255.240.0
+Therefore 35 -> 0100 0011
+0100 = network = 32
+0011 = host = 3
+*Network IP = 172.16.32.0 [all host = 0]
+*1st IP = 172.16.32.1 [all host = 0, except for last = 1]
+*Last IP = 172.16.47.254 [all host = 1, except for last = 0]
+*Broadcast = 172.16.47.255 [all host = 1]
+
+Subnetting
+ex. 172.16.129.1 /17
+== 172.16.10000001.1 255.255.128.0
+Therefore 129 -> 1 000 0001
+1 = network = 128
+000 0001 = host = 1
+*Network IP = 172.16.128.0 [all host = 0]
+*1st IP = 172.16.128.1 [all host = 0, except for last = 1]
+*Last IP = 172.16.255.254 [all host = 1, except for last = 0]
+*Broadcast = 172.16.255.255 [all host = 1]
+
+Subnetting and Networks
+# of host of subnet = 2^n - 2 (network and broadcast)
+# of networks = 2^n
+ex. 10.1.1.0 /24 into subnets that support 14 machines
+1) 2^4-2 = 16 - 2 = 14 machines. Therefore, we need a subnet of /28 (borrowing 4 bits)
+2) Turn /24 into /28, 10.1.1.0 -> 10.1.1. 0000 | 0000
+So... 
+10.1.1.0 /28 (0000 | 0000)
+10.1.1.16 /28 (0001 | 0000)
+10.1.1.32 /28 (0010 | 0000)
+10.1.1.48 /28 (0011 | 0000)
+...
+10.1.1.240 /28 (not 254 because 255.255.255.240 = /28 or 1111|0000 - remember .240 because host portion remains 0))
+
+Subnetting and Networks
+ex. 10.128.192.0 /18 requires 30 subnets as many hosts as possible
+# of networks (subnets) = 2^5, therefore n=5 (borrow 5 bits)
+/18 = 255.255.192.0
+192 -> 11 | 000000
+We need to borrow 5 bits, therefore /18 -> /23 and 11|000000 becomes 1100000|0
+So...
+10.128.192.0 /23 (1100000|0)
+10.128.194.0 /23 (1100001|0)
+10.128.196.0 /23 (1100010|0)
+10.128.198.0 /23 (1100011|0)
+...
+10.128.254.0 /23 (1111111|0 - remember 254.0 because host portion remains 0)
+
+ex. What is the network address for 172.16.1.1 with network mask 255.255.192.0?
+network mask = 255.255.192.0 = /18 or 11 | 000000 (host)
+-> Make all host = 0 to find network address, therefore 172.16.0.0 /18
+
+ex. What is the broadcast address for host 172.16.1.1 with network mask 255.255.192.0?
+network mask 255.255.192.0 = /18 or 11 | 000000. 00000000 (host)
+-> Make all host = 1 to find broadcast address, therefore 172.16.63.255 /18
+
+ex. PC's ip address is 192.168.1.130/27, configure the router's Ethernet 0 interface with the last IP address in the same subnet
+-> /27 = 255.255.255.224 or 100 | 00010
+-> Therefore, last ip address = broadcast - 1
+-> Set hosts = 1, 100 | 11111 = 159, 159 - 1 = 158 
+-> Therefore, router's Ethernet 0 interface should be 192.168.1.158 /27
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 192.168.1.158 255.255.255.224
+
+ex. Configure the router's serial interface (Serial 0/1) with the last IP address in the subnet 192.168.168.184/30, then enable the router's interface
+-> /30 = 255.255.255.252 or 101110|00
+-> Therefore, last ip address = broadcast - 1
+-> Set hosts = 1, 187 - 1 = 186
+-> Therefore, 192.168.168.186 255.255.255.252
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface serial 0/1
+Router1(config-if)#ip address 192.168.168.186 255.255.255.252
+Router1(config-if)#no shutdown
+
+ex. Configure the router's Ethernet 0 interface with the last IP address in the same subnet as PC in the diagram. Note 2: PC's address is 172.16.197.231/23
+-> .197 /23 = 1100010 | 1
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 172.16.197.254 255.255.254.0 (Note* Not 255, because that is broadcast)
+
+ex. Configure the router's Ethernet 0/0 interface with the 2nd IP address in the same subnet as PC in the Diagram. Note: The PC's address is 172.16.197.231/23
+-> 197 /23 1100010 | 1
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0/0
+Router1(config-if)#ip address 172.16.196.2 255.255.254.0
+
+ex. Your router is the same subnet as host 10.199.199.199/26. 
+Configure the router's Ethernet 0/0 interface with the first IP address in the subnet
+-> 199 @ /26 = 11 | 00 0111
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0/0
+Router1(config-if)#ip address 10.199.199.193 255.255.255.192
+
+ex. Your router is the same subnet as host 10.199.199.199/22. 
+Configure the router's Ethernet 0 interface with the first IP address in the subnet.
+-> 199 @ /22 = 1100 01|11
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 10.199.196.1 255.255.252.0
+
+ex. Your router is the same subnet as host 10.199.199.199/22. 
+Configure the router's Ethernet 0 interface with the last IP address in the subnet
+-> 199 @ /22 = 1100 01|11
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 10.199.199.254 255.255.252.0
+
+ex. Your router is the same subnet as host 10.10.10.10/21. 
+Configure the router's Ethernet 0 interface with the first IP address in the subnet
+-> .10 /21 = 00001 | 010
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 10.10.8.1 255.255.248.0
+
+ex. Your router is the same subnet as host 10.10.10.10/21. 
+Configure the router's Ethernet 0 interface with the last IP address in the subnet
+-> .10 /21 = 00001 | 010
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 10.10.15.254 255.255.248.0
+
+ex. Your router is the same subnet as host 172.172.172.172/25
+Configure the router's Ethernet 0 interface with the first IP address in the subnet
+-> .172 /25 = 1 | 0101100
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 172.172.172.129 255.255.255.128
+
+ex. Your router is in the same subnet as host 172.172.172.172/25
+Configure the router's Ethernet 0 interface with the last IP address in the subnet
+-> .172 /25 = 1 | 0101100
+[PROGRAM]
+Router1>enable
+Router1#conf t
+Router1(config)#interface ethernet 0
+Router1(config-if)#ip address 172.172.172.254 255.255.255.128
+
+ex. Can 10.1.1.1 ping 10.1.2.1?
+-> You don't know until you know its submask
+-> If we are given /24, can we stil ping it? No, because /24 is 255.255.255.0 and (10.1.1).1 is the network for the 1st ip address and (10.1.2).1 is on another network. Hence, not able to ping to each other
+-> If we are given /16, can we still ping it? Yes, because /16 is 255.255.0.0 and (10.1).1.1 = (10.1).2.1 and 10.1 is the network on both devices
+
+ex. For the network 192.168.1.0 /24, how to support 60 hosts?
+1) Find host bits. 2^6 host bits = 64 hosts per subnet
+2) From /24 = 11111111 11111111 11111111 00000000 
+-> Borrowing 6 host bits, /24 becomes /26 11111111 11111111 11111111 11000000 
+192.168.1.0 /26
+192.168.1.64 /26
+192.168.1.128 /26
+192.168.1.192 /26
+
+ex. Get 2 routers connected to talk to each other
+Router1> enable
+Router1# conf t
+Router1(config)#router eigrp 100 [to enable full connectivity]
+Router1(config-router)# network 192.168.1.0
+Router1(config-router)# no auto-summary
+Router2> enable
+Router2# conf t
+Router2(config)#router eigrp 100 [to enable full connectivity]
+Router2(config-router)# network 192.168.1.0
+Router2(config-router)# no auto-summary
+[confirm it is working]
+Router1# show ip eigrp neighbors 
+Router1# show ip route [see what's connected]
+
+ex. Subnet 192.168.1.128 /26 to allow it to host only 2 hosts
+1) To host 2 hosts, we only require 2 host bits. Therefore 255.255.255.252 or /30 or 10 (network) | 00 00 (new subnet) | 00 (new host)
+2) # of new subnets with 2 host bits is 2^(network bits borrowed) = 2^4 = 16 new subnets
+Therefore new subnets would be:
+192.168.1.128 /30 (10 (network) | 00 00 (new subnet) | 00 (new host))
+192.168.1.132 /30 (10 (network) | 00 01 (new subnet) | 00 (new host))
+192.168.1.136 /30 (10 (network) | 00 10 (new subnet) | 00 (new host))
+... /30
+192.168.1.188 /30 (10 (network) | 11 11 (new subnet) | 00 (new host))
+
+Basic Communication:
+- CSMA/CD Carrier Sense Multiple Access Colision Detection
+- Broadcast is not supported on IPv6
+- Broadcast vs Multicast - multicast is a selected group of broadcast
+
+Bus Topology (early ethernet)
+- Connects through a T connector
+- 10base5 "thicknet" (500meters distance)
+- 10base2 "thinnet" (185meters distance)
+- Uses CSMA/CD to avoid Collision
+-> CS Carrier Sense checks the wire 
+-> MA Multiple Access allows multiple devices to access one wire
+
+10base2
+- AKA "Single Collision Domain / Single Broadcast Domain
+- Coax cable
+- baseband
+- 10mbs is the maximum speed
+- 2 is the maximum segment length of 185meters
+- Base = baseband - single signal in the wire (whereas broadband allows for multiple signal in the wire)
+- Ends with a Terminator, because again... single signal. Therefore if it heads back, collision would occur
+(ISSUE1) Collision
+(ISSUE2) Cable Length, longer the cable, greater the degradation
+(ISSUE3) Cable break -> No terminator
+(ISSUE4) 10Mbps is for the entire segment, not per device. Because of Collisions, you can only utilize 30-40% of the speed
+ex. 10Mbps through 4 devices, 10/4 = 2.5, then *0.3 = 0.75Mbps
+
+10baseT
+- Shielded/Unshielded twisted pair
+- maximum segment length of 100meters
+- Base = baseband
+
+RJ45 Pin Connector
+- T568A or T568B 
+- TIA EIA 568 defined as structured cabling standards
+- EIA stands for Electronics Industry Alliance
+- T568A (s.green, green, s.orange, blue, s.blue, orange, s.brown, brown)
+- T568B (s.orange, orange, s.green, blue, s.blue, green, s.brown, brown) is most popular 
+
+Straight Through Cables
+- When connecting PC to Router/Switch, etc
+- Uses Straight Through Cables (pin 1, corresponds to pin 1, pin 2 to pin 2 etc...)
+- Ethernet port interface used on NICs, routers and uplink ports
+
+Cross Over Cable
+- When connecting 2 PCs or 2 Routers together
+- TX transmit
+- RX receive
+- Pins cross (pin 1 TX+ to pin 3 RX+, pin 2 TX- to pin 6 RX-, pin 3 RX+ to pin 1 TX+, pin 6 RX- to pin 2 TX-)
+-> in 10baseT or 100baseT, pin 4 5 7 8 are not used
+-> in gigabit, all pins are used
+
+Cable Category
+- Cat3: telephone wiring, used to be used for data transfer
+- Cat5: frequency up to 100MHz, speeds of 10/100 Mbps supported up to 100meters
+- Cat5e: frequency up to 100Mhz, supports 1Gbps (improve Cat5 by reducing noise and interference... most Cat5 meets Cat5e specs, but might not meet certifications therefore, not categorized as Cat5e) up to 100meters
+- Cat6: frequency up to 250Mhz, increase pair twists per inch, supports 10Gbps. up to 55meters. Suitable for 10baseT, 100baseTx or fastEthernet or 1000baseTe or Gigabitethernet or 10GbpEthernet
+- Cat6a (argumented): frequency up to 500Mhz, supports 10Gbps. up to 100meters.
+- Cat7 - frequency up to 600Mhz, supports 10Gbps. up to 100meters ( can be tera Connectors, doesnt have to be RJ45). Foiled every pair - class F
+- Cat7a - frequency up to 1000Mhz, supports 100Gbps.
+- Cat8 - supports 40Gbps
+- Cat8.1 - backward compatible and interoperable with Cat6a
+- Cat8.2 - interoperable with Cat7
+- DAC Direct Attachment Cable (DAC) - up to 15meters, SFP Small Formfactor Pluggable plug on each end. Supports fiber or copper. up to 10Gbps on SFP+ slot
+- Roll Over Cable - special cable used in Cisco environment (connects computer to Console through the computer's serial port - or get USB to DB9 converter) - pin 1to8, 2-7, ... 8to1.
+
+
+When to use Straight Through and Cross Over?
+- Straight Through: router-switch, pc-switch, pc-bridge, pc-hub
+- Cross Over: switch-switch, pc-pc, hub-hub, router-router, bridge-switch, pc-server, hub-switch
+
+MDI Media Dependent Interface
+- Nowadys Auto MDI/MDIX made cross over cables obsolete - auto detect cable type
+- PC, routers uses MDI
+- Switches and Hub uses MDIX
+
+MAC Address
+- 48 bits (24 bits to OUI + 24 bits to Station Address)
+- OUI = Organizational Identifier - identifies vendor
+- Station address should be unique (can be changed in software) but it is burnt into NIC physically
+
+MAC OUI 
+- Last bit in the 1st Octet is 0 (unicast) or 1 (multicast)
+- 2nd last bit in the 1st Octet is 0 (globally unique MAC address) or 1 (administrator has changed this in software)
+
+Hub vs Bridge vs Switch
+
+Hub
+- Layer 1 Physical layer device 
+- Multiport repeater with no intelligence - being a repeater, can regenerate the signal to extend distance
+- Physical Star topology (hub being a central device)
+- Logical Bus topology (traffic regenerates to all devices)
+- 10BaseT -> 10Mbps shared between 4 computers = 2.5Mbps *0.30 (efficiency due to collision) = 0.75Mbps
+?How it works? 
+1) Receives traffic (frame with MAC address), amplifies the signal then sends the traffic out of all ports except on the port of which it was received
+2) The destination NICs will receives the frame. They will see the destination MAC address does not match theirs, and they will drop the frame. Otherwise, they will receive the the frame - strip layer 2 headers, pass the packet to higher layer protocol 
+
+Bridge
+- Layer 2 Data Link device
+- Superseeded Hubs
+- Uses MAC address table to learn where a device is on the topology
+- Physical Star topology (bridge being a central device)
+- Perform its processing in software (slow), whereas Switches perofrm its processing in hardware (fast)
+?How it works? 
+1) Host A sending to Host B
+2) When Bridge boots up, MAC address table is empty (although it can be configured with a static table)
+3) After Host A send to B, then MAC address table learns where Host A is
+4) When Host B wants to reply to Host A, it will send a frame to Host A, again Bridge now knows where Host B is, and will update its own MAC address
+5) Now different than Hub, during step (4), Bridge will not broadcast the message to all hosts, but it reads from its MAC address, and it will only send it to host A
+**Advantage of Bridge is that, if there are other hosts on the network (Host C & Host D), by having this directed traffic, it will not use C or D's bandwidth since Host A only wants to communicate with Host B
+**Another advantage of bridge is that, every port is its own Collision Domain. If Host C is having a collision, it will not affect A, B or D
+
+Switch
+- Layer 2 Data Link Device
+- Superseeded Bridge
+- Physical Star topology (switch being a central device)
+- Similar to bridge, every port is its own Collission Domain
+**Advantage of Switch is that it allows for more ports than bridges (this is possible due to processing is done in hardware (faster) using ASICs Application Specific Integrated Circuit allows for high throughput, quick table lookup rather than software)
+**Another advantage, switch can operate at "Wire Speed" (no degradation performance between 2 devices) - perform as fast as if the switch is not even there - does not slow the frame down
+**Another advantage, switch provide XMbps dedicated speed, compared to a hub where the speed is shared.
+
+Switch vs Access Points
+- Switches operate in dedicated bandwidth
+- Access Points act like Hubs, and operate in shared bandwidth
+
+Router (local destination)
+- Level 3 devices
+- Routing decision based on IP addresses of the network address, rather than the individual device IP Address
+?How it works?
+1) Host A's ip address sending to Host B's ip address
+2) Host A needs to know Host B's MAC address, using ARP Address Resolution Protocl
+3) Host A checks its own ARP for whether it has stored Host B's MAC address - if it does not have Host B's MAC address, it will broadcast out who has Host B's ip address (ARP Request)
+--ARP Request---
+(Source MAC: XX)(Destination MAC: FFFFFFFF)(Source IP: ABC)(Destination IP: DEF)
+4) Assume there are host b, c, d on the network. Host B will see that the ARP request and match the request ip address with its own ip, it will then send an (ARP Reply) and add Host A's MAC address to its ARP Cache. Host C and D will drop the frame because it does not match its own IP address
+5) Host A will receive the frame and then it will update its own ARP Cache
+**Note. If the device is on a remote network, then it will send the request to its gateway
+
+Router (remote destination)
+?How it works?
+See Section 111.
+*Moral of the story: IP address will remain the same, but each time a Host transverse a router, the source MAC and destination MAC will be rewritten (Layer 2 headers)
+
+Broadcast Domain vs Collision Domain
+- Broadcast Domain is the entire network that is attached to a router
+- Collision Domains: each device connected to a device is a collision domain, switch connecting to router is its own collision domain, everything attached to a hub is a single collision domain
+
+ARP commands on CMD
+- arp -d (deletes arp cache)
+- arp -a (shows arp entries)
+*Note pinging will usually fail its 1st entry due to ARP cache hasn't been populated during its 1st ping.
+
+Full duplex/Half duplex
+- Full duplex is able to send and receive traffic at the same time, in comparison to Hubs using CSMA/CD Carrier Sense Multiple Access Collision Detection where it is running half duplex (one side can send at any given time)
+- Full duplex disregards CSMA/CD because there is no collision. However, if one device is set to half-duplex and the other device is set to full-duplex, there will be an issue
+ex. if 10Mbps is the speed of normal traffic, enabling full duplex in theory will increase to 20Mbps becaues you can receive and send 10Mbps both ways
+
+Adding MAC Address to Routers
+Router#configure Terminal
+Router(config)#interface f0/0
+Router(config-if)#mac-address 0023.3300.0001 (note* 0023.33 is Cisco's allocated MAC address)
+Router(config-if)#no shutdown
+
+BUM traffic = Broadcast Unknown-unicast, Multicast
+- When a switch receives an unknown unicast packet to an unknown unicast address, it floods all interfaces except from which it was received
+
+Unicast, Multicast, Broadcast
+- Unicast does not flood all ports unless MAC address is unknown
+- Multicast (if vlan is not configured) it will flood all ports
+- Broadcast always flood all ports

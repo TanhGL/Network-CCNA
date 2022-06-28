@@ -1,0 +1,777 @@
+Switch Stacking
+- TLDR: "LOGICAL - SINGLE VIRTUAL SWITCH" 
+***TLDR2: Stacking techologies and Chassis Aggregation Technologies... Simplifies management, configuration and forwarding of traffic
+- Multiple switches linked together to act as a single switch through 'stacking ports'
+- Connected in a series (ring) - 1st switch attaches to last switch
+- Full duplex
+- Single "STACK MASTER" that controls the stack
+- Runs the same protocols, share the same MAC Address table, single management IP Address, one configuration file, (STP, CDP, VTP) running on one switch ONLY
+BENEFITS:
+1) Etherchannels/Link Aggregation is created - easier/better than STP, STP has to block one port and allow another port
+2) Simplified configuration and management of network
+
+Switch Stacking (Access Layer vs Chassis Aggregation)
+1) Access Layer
+- stack of switches joined together via special cables - up to 8 switches
+2) Chassis Aggregation
+- Distribution and core layers 
+- Does not require special cables, instead uses ethernet interface switches - usually 2 switches
+- HA High Availability / Redundancy / Scalability (HSRP Hot Standby Router Protocol, Spanning Tree)
+- Cisco VSS Virtual Switch System 
+BENEFIT: HA, Redundancy, Scalability
+DOWNSIDE: Harder to implement, cost 
+
+Chassis Based Switch (Using Link Aggregation)
+- 2 or more switches are independent of each other, but joined together
+- Multiple line cards, supervisor modules and power supplies
+*Supervisor Module: If one of the modules go down, the supervisor module can take over the management of the switch
+
+Aggregated Chassis Environment
+- Similar to Chassis Based Switch, but the multiple switches becomes one switch
+BENEFITS: STP not required because if switches are setup R1(2 switches in 1) + R2(4 switches in 1) but R1 and R2 are single switches, then there is only 1 link between R1 and R2
+
+TCP Port numbers:
+20/21 FTP
+22 SSH
+23 Telnet
+25 SMTP
+80 HTTP
+110 POP3
+443 HTTPS SSL
+
+UDP Port numbers:
+67,68 DHCP
+69 TFTP
+161 SNTP
+
+Both Port numbers:
+53 DNS
+
+ACL Access Control List
+- Used to permit/deny packets moving through a router
+
+ACL Process
+**ACL goes through a sequential list (permit, deny)
+**Must have at least one permit statement, otherwise might as well unplug the cable
+1) No ACL permit match? Goes to next line in the sequential list
+- If next line, ACL permits? Permit, process stops
+- If next line, ACL does not permit? Deny, process stops
+2) If no ACL permit match by the end of the sequential list? Implicit deny, process stops
+
+Inbound ACL:
+- ACL determines whether to allow/deny traffic before it hits router
+1) ACL -> 2) Router
+Outbound ACL:
+1) Router -> 2) ACL
+**It is more efficient to bind an ACL for inbound traffic
+
+ACL uses:
+1) IPSec tunneling - ACL determines which routes need to be encrypted
+2) Redistribute routing protocols - ACL determines which routing protocols such as EIGRP needs to be redistributed to EIGRP. Not all EIGRP needs to be redistributed, therefore ACL can control which ones need to be redistributed
+3) NAT - ACL controls which set of routes need to be translated
+
+Standard ACL
+- Checks source IP Address ONLY
+- Permits or denies entire protocol suite
+- Numbered 1-99, 1300-1999
+- Names (you specify)
+*Remark = ACL description in IOS
+
+Extended ACL
+- Checks source IP Address and Destination IP Address
+- Permits or denies individual protocols, applications, ports, etc...
+- Numbered 100-199, 2000-2699
+- Names (you specify)
+
+Wildcard masks - Standard/Extended ACL
+- ACL use inverse mask (opposite of Network Mask)
+Binary:
+0 = match
+1 = ignore
+ex. Match a specific address "access-list 1 permit 10.1.1.1 0.0.0.0" or "access-list 1 permit host 10.1.1.1"
+Address|Mask
+10|0 (match)
+1|0 (match)
+1|0 (match)
+1|0 (match)
+ex. Match anything "access-list 1 permit 0.0.0.0 255.255.255.255" or "access-list 1 permit any"
+ex. Match subnet 0.0.0.Anything "access-list 1 permit 10.1.1.0 0.0.0.255"
+10|0 (match)
+1|0 (match)
+1|0 (match)
+0|255 (anything)
+ex. Ignore last 4 bits of last octet "access-list 1 permit 10.1.1.0 0.0.0.15"
+10|0 (match)
+1|0 (match)
+1|0 (match)
+0|15 0000 1111 (8 4 2 1 = 15), the last 4 binary bits can be set to anything
+Therefore, 10.1.1.1 will match 0.0.0.15 because 0000 0001 permitted by 0000 1111
+But... 10.1.1.129 will not match 0.0.0.15 because 1000 0001, the issue is 1000 does not match 0000
+
+**Remember, an access list has to bind in order for it to be active. You can create all the access list you want, but if you don't activate it, then you might as well delete it
+**Also, non-existent access list can be bind to interfaces - bad practice, do not to have access list bind if the access list does not exist 
+**Order of processing is important. ACL is top-down process
+ex. (b) would not be evaluated 
+a) access-list 1 permit all
+b) access-list 1 deny host 10.1.1.1
+**Standard ACL: Placement of ACLs closest to destination - prevent any unwanted deny because it only accounts for source IP 
+**Extended ACL: Placement of ACLs closest to source - does not matter because it accounts for both source and destination IP along with its with protocols
+
+==Permit 10.1.1.1 in ACL==
+R1#conf t
+R1(config)#access-list 1 permit 10.1.1.1 0.0.0.0
+==Show IP access list==
+R1#show ip access-lists
+==Permit 10.1.2.3 in ACL, deny everyone else on int f0/0==
+R1(config)#access-list 2 permit 10.1.2.3 0.0.0.0 or permit host 10.1.2.3
+R1(config)#int f0/0
+> Set inbound ACL to be ACL list 1, and ACL list 3 to permit all traffic
+R1(config-if)#ip access-group 1 in
+R1(config-if)#end
+R1(config)#access-list 3 permit any
+R1(config)#int f0/0
+R1(config-if)#ip access-group 3 out
+> Confirm this
+R1#show ip int f0/0
+==Add remark==
+R1(config)#access list 5 remark (Add In Your Comment Here)
+> See remark (show ip access-lists does not work)
+R1#show run | i access-list
+
+==Standard ACL==========================================
+10.1.1.1 + 10.1.1.2 <-> f0/0 R1 f0/1 <-> 10.1.2.1 server
+
+Permit host 10.1.1.1 to server 10.1.2.1
+Deny everyone else to server 10.1.2.1
+Allow traffic to other server
+
+R1#conf t
+R1(config)#access-list 4 permit 10.1.1.1 0.0.0.0
+R1(config)#int f0/1
+R1(config-if)#ip access-group 4 out
+
+==Standard ACL==========================================
+10.1.1.1 <-> f0/0 R1 f0/1 <-> 10.1.2.1 server
+
+Permit subnet 10.1.1.0/24
+Deny everyone else
+
+R1#conf t
+R1(config)#access-list 5 10.1.1.0 0.0.0.255
+R1(config)#int f0/0
+R1(config-if)#ip access-group 5 in
+
+==Standard ACL==========================================
+10.1.1.1 <-> f0/0 R1 f0/1 <-> 10.1.2.1 server
+
+Permit 10.1.1.1 to telnet to router
+Deny everyone else telnet to router
+Allow traffic anywhere else
+**Standard control list has no access to permit/deny protocols, since this is telnet, we have to permit is inside vty line
+
+R1#conf t
+R1(config)#access-list 6 permit 10.1.1.1
+R1(config)#line vty 0 4
+R1(config-line)#access-class 6 in
+
+==Extended ACL==========================================
+10.1.1.1 <-> f0/0 R1 s0/0 <-> s0/0 R2 f0/0 <-> 10.1.2.1 server
+
+Permit http traffic from 10.1.1.1 to 10.1.2.1
+Deny all other traffic from subnet 10.1.1.0/24 to server 10.1.2.1
+Permit all other traffic from subnet anywhere else
+*Recall 100-199 = extended ACL
+
+R1#conf t
+R1(config)#access-list 100 permit tcp 10.1.1.1 0.0.0.0 host 10.1.2.1 eq 80 (or www)
+R1(config)#access-list 100 deny ip 10.1.1.0 0.0.0.255 host 10.1.2.1
+R1(config)#access-list 100 permit ip 10.1.1.0 0.0.0.255 any
+R1(config)#int f0/0
+R1(config-if)#ip access-group 100 in
+
+==Extended ACL==========================================
+10.1.1.1 <-> f0/0 R1 s0/0 <-> s0/0 R2 f0/0 <-> 10.1.2.1 server
+
+Permit http and tftp traffic from subnet 10.1.1.0/24 to server 10.1.2.1
+Deny all other traffic from subnet 10.1.1.0/24 to server 10.1.2.1
+Permit all other traffic from subnet anywhere else
+
+R1#conf t
+R1(config)#access-list 101 permit tcp 10.1.1.0 0.0.0.255 host 10.1.2.1 eq 80
+R1(config)#access-list 101 permit udp 10.1.1.0 0.0.0.255 host 10.1.2.1 eq 69
+OR
+R1(config)#access-list 101 permit udp 10.1.1.0 0.0.0.255 10.1.2.1 0.0.0.0 eq 69
+R1(config)#access-list 101 deny ip 10.1.1.0 0.0.0.255 host 10.1.2.1
+OR
+R1(config)#access-list 101 deny ip 10.1.1.0 0.0.0.255 10.1.2.1 0.0.0.0
+R1(config)#access-list 101 permit ip 10.1.1.0 0.0.0.255 any
+R1(config)#int f0/0
+R1(config-if)#ip access-group 101 in
+
+==Extended ACL==========================================
+10.1.1.1 <-> f0/0 R1 s0/0 <-> s0/0 R2 f0/0 <-> 10.1.2.1 server
+
+Permit http and tftp traffic from anywhere to server 10.1.2.1
+Deny all other traffic to server 10.1.2.1
+
+R2#conf t
+R2(config)#access-list 102 permit tcp any (0.0.0.0 255.255.255.255) 10.1.2.1 0.0.0.0 eq 80
+R2(config)#access-list 102 permit udp any 10.1.2.1 0.0.0.0 eq 69
+R2(config)#access-list 102 deny ip any 10.1.2.1 0.0.0.0
+R2(config)#int f0/0
+R2(config)#ip access-group 102 out
+
+==Edit individual line numbers on ACL==
+> View ACL 102
+R1#show access-list 102
+10 permit...
+20 permit...
+30 deny...
+> Remove 30
+R1#conf t
+R1(config)#ip access-list extended 102
+R1(config)#no 30
+
+===================================================
+
+Private address space (IANA Internet Assigned Numbers Authority)
+/8 10.0.0.0 - 10.255.255.255
+/12 172.16.0.0 - 172.31.255.255
+/16 192.168.0.0 - 192.168.255.255
+- Non routable
+- ISP blocked and dropped
+
+NAT Network Address Translation
+- IPv4 exhausted RFC1918
+- Private address translated to Public address to be used on the internet
+
+PAT Port Address Translation
+- 1 public IP address used by 500 internal devices (Overloading the address)
+
+***3 types of NAT - Overloading:
+1) Static NAT
+- Permanent
+- 1-1 mapping: private IP to public IP
+2) Dynamic NAT
+- Not Permanent 
+- NAT translations are automatically created and torned down when not needed (mapping will be removed once communication ends) - times out by itself
+- A pool of Public IP addresses is available for use internally by Private IP addresses. Router dynamically allocates public IP addresses (on as needed basis)
+3) PAT
+- maps multiple private IP addresses to a single public IPv4 address
+- uses Port Numbers to differentiate between different translations
+- a.k.a NAT Overloaading (single IP address with multiple IP addresses)
+- it is a type of Dynamic NAT
+
+Inside Local - Our private IP address
+Inside Global - Our public IP address
+Outside Local - Destination private IP address
+Outside Global - Destination public IP address
+
+==Static NAT Setup==
+R1 10.1.1.1 /24 <-> f0/0 10.1.1.2 /24 R2 f0/1 8.1.1.1 /24<-> 8.1.1.2 /24 R3
+> Setup outside NAT
+R2#conf t
+R2(config)#int f0/1
+R2(config-if)#ip nat outside
+> Setup inside NAT
+R2(config)#int f0/0
+R2(config-if)#ip nat inside
+R2(config-if)#end
+> Setup random address for this ex.
+R2(config)#ip nat inside source static 10.1.1.1 8.1.1.5 (Inside Global, Inside Local)
+==Show NAT==
+R2#show ip nat translations
+==Watch NAT in action==
+R3#ping 8.1.1.5 (5/5 successful pings!)
+**Reason this works is because R3 thinks 8.1.1.5 is real, but actually 8.1.1.5 is the inside translation for 10.1.1.1)
+Similarly...
+R3#telnet 8.1.1.5 (This Telnets to 10.1.1.1 and can be confirmed below.
+R1#conf t
+R1(config)#line vty 0 5
+R1(config-line)#login
+R1(config-line)#password cisco
+R1(config-line)#end
+R1(config)#enable password cisco
+
+==Dynamic NAT Setup==
+R1 10.1.1.1 /24 <-> f0/0 10.1.1.2 /24 R2 f0/1 8.1.1.1 /24<-> 8.1.1.2 /24 R3
+> Setup outside NAT
+R2#conf t
+R2(config)#int f0/1
+R2(config-if)#ip nat outside
+> Setup inside NAT
+R2(config-if)#int f0/0
+R2(config-if)#ip nat inside
+R2(config-if)#end
+> Setup ACL and NAT-POOL
+R2(config)#ip nat pool NAT-POOL (nameHere) 8.1.1.5 8.1.1.10 (range) netmask 255.255.255.0
+R2(config)#ip nat inside source list 1 pool NAT-POOL
+R2(config)#access-list 1 permit 10.1.1.0 0.0.0.255
+
+==Clear NAT translations==
+R2#clear ip nat translations
+
+==PAT Setup (NAT Overloading)==
+> Setup outside NAT
+R2#conf t
+R2(config)#int f0/1
+R2(config-if)#ip nat outside
+> Setup inside NAT
+R2(config-if)#int f0/0
+R2(config-if)#ip nat inside
+R2(config-if)#end
+> Setup PAT / NAT Overloading
+R2(config)#access-list 1 permit 10.1.1.0 0.0.0.255
+R2(config)#ip nat inside source list 1 interface fastEthernet 0/1 overload
+
+**Static and Dynamic NAT is not good for when your network has 100 devices. This is when NAT Overloading is beneficial
+**PAT Port Address Translation is able to differentiate the sessions based on Port Number, hence the term Port Address Translation
+**In previous examples, we NAT to the Router's IP address, we will now NAT to a Public IP address
+**TDLR: Static NAT, Dynamic NAT = everytime a device wants to send data out, it will need a public IP address
+**TDLR: Therefore, PAT is more useful because it is NAT overloading and uses 1 public IP address with different ports (hence, 'Port Address' translation) for each private IP device
+
+__________________________________________________________
+
+===NAT Simulations - Section447===
+Server 10.1.1.1 <-> f0/0 Router1 s0/0 <-> Internet
+Enable Static NAT so users on the Internet can access the Web server 10.1.1.1 as follows:
+
+Create a NAT translation on the router for the server
+The inside global address is 192.168.1.2 (assume that this is a valid address)
+Configure the Serial interface as the outside interface
+Configure the FastEthernet interface as the inside interface
+
+Router1> en
+Router1# conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router1(config)# ip nat inside source static 10.1.1.1 192.168.1.2
+Router1(config)# int s0/0
+Router1(config-if)# ip nat outside
+Router1(config-if)# int f0/0
+Router1(config-if)# ip nat inside
+
+
+===NAT Simulations - Section448===
+Server 10.1.1.1 <-> f0/0 Router1 s0/0 <-> Internet
+Enable Static NAT so users on the Internet can access the Web Server 10.1.1.1 as follows:
+
+Create NAT translation on the router for the server. The inside global address is 1.2.3.4
+Configure the Serial interface as the outside interface
+Configure the Fast Ethernet interface as the inside interface
+
+Router1> en
+Router1# conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router1(config)# ip nat inside source static 10.1.1.1 1.2.3.4
+Router1(config)# int s0/0
+Router1(config-if)# ip nat outside
+Router1(config-if)# int f0/0
+Router1(config-if)# ip nat inside
+
+
+===NAT Simulations - Section449===
+Server 10.1.1.0/24 <-> f0/0 Router1 s0/0 <-> Internet
+Configure Dynamic NAT using a pool on the Router as followings:
+
+Step 1: Create a nat pool with the name "natpool" with address range: 192.168.1.1 to 192.168.1.10 and netmask 255.255.255.240
+Step 2: Bind access list 1 to the nat pool
+Step3: Create access list 1 and permit network 10.1.1.0/24
+Step 4: Configure interface Serial 0/0 as the outside interface
+Step 5: Configure interface FastEthernet 0/0 as the inside interface
+
+Router1> en
+Router1# conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router1(config)# ip nat pool natpool 192.168.1.1 192.168.1.10 netmask 255.255.255.240
+Router1(config)# ip nat inside source list 1 pool natpool
+Router1(config)# access-list 1 permit 10.1.1.0 0.0.0.255
+Router1(config)# int s0/0
+Router1(config-if)# ip nat outside
+Router1(config-if)# int f0/0
+Router1(config-if)# ip nat inside
+
+
+===NAT Simulations - Section450===
+Server 10.1.1.0/24 <-> f0/0 Router1 s0/0 <-> Interne
+Configure the router with PAT so that hosts in the 10.1.1.0/24 subnet can access the access the Internet:
+
+Step 1: Create the PAT translation using the Serial 0/0
+Step 2: Configure access list 1 to permit network 10.1.1.0/24
+Step 3: Configure Serial 0/0 as the outside interface
+Step 4: Configure FastEthernet 0/0 as the inside interface
+
+Router1> en
+Router1# conf t
+Enter configuration commands, one per line.  End with CNTL/Z.
+Router1(config)# ip nat inside source list 1 interface serial 0/0 overload
+Router1(config)# access-list 1 permit 10.1.1.0 0.0.0.255
+Router1(config)# int s0/0
+Router1(config-if)# ip nat outside
+Router1(config-if)# int f0/0
+Router1(config-if)# ip nat inside
+__________________________________________________________
+
+QOS Quality of Service
+
+Converged Networks
+- Single Network for Voice, Data and Video (before it was all on different networks)
+
+Quality issues in Converged Network
+1) Lack of bandwidth
+- Maximum bandwidth = the lowest link in the network
+- Forward the most important packets first (voice over ftp)
+2) End-to-end delay
+- A-to-B delay
+- Propagation delay - time it takes to transit a packet
+- Processing delay - time it takes to process a packet from its input, decision, then onto its output
+- Queuing delay (can be prioritized) - when a packet waits in the output queue of a router
+- Serialization delay - times it takes to physically transfer bits on the wire
+3) Variation of delay (jitter)
+ex. Traffic (A)(B)(C) is a lot smoother than (A)(B)---(C), the latter is jitter. Cisco has dejitter functions to resolve this. Similar to how videos are prebuffered
+4) Packet loss
+- Tail drops: packets may be lost when output queue is full
+- WRED Weighted Random Early Detection: X [MAX] Y [MIN] Z, if it gets to X amount of traffic, low priority traffic are randomly dropped
+
+Ways to reduce delay:
+- Upgrade links
+- Forward important packets first
+- Compress payload / IP packet headers
+- Guarantee enough bandwidth to sensitive traffic
+
+QOS requirements
+Voice/Video latency <= 150ms
+Jitter <= 30ms
+Loss <= 1%
+Video bandwidth +20% (ex. 384kbps + 20% requires 460kbps)
+
+QOS requirements classes/priority
+Mission-critical apps > Transactional (chats, client-to-server transactions) > Best-Effort (internet, e-mail) > Less-than-best-effort (scavenger - facebook, youtube, bit torrent)
+
+Implement QOS
+1) CLI - no templates
+2) Modular QoS CLI (MQC) - can create templates
+3) AutoQoS - can create templates 
+3a) AutoQoS VoIP (voice ONLY) 
+- DOES NOT looks at traffic
+- Router & Switches
+3b) AutoQoS Enterprise (voice, video and data) 
+- looks at traffic and also offer suggestions
+- Routers ONLY
+4) QoS Policy Manager (QPM)
+- Centralized QoS Management platform, enables network wide QoS
+
+3 models of QoS
+1) Best effort 
+- no QoS is applied to packets
+- does scale, no gurantee delivery
+2) IntServ 
+- applications signal to network that they require special QoS
+- does not scale, gurantee delivery (ex. "you bought First Class ticket, you will be guranteed a seat in First Class")
+3) DiffServ 
+- disregard application, network recognize classes that require special QoS
+- does scale, no gurantee delivery (ex. "just because you want to be treated like First Class, does not gurantee you will be treated like First Class")
+**Real world, IntServ (mission-control) and DiffServ (QoS) work together
+**Real world, Best Effort is used on the Internet
+
+IP Phone startup process
+1) (Phone) Obtains power
+2) (Phone) Loads locally stored image with previous configuration
+3) (Switch) will provide VLAN information via CDP/LLDP-MED
+4) (Phone) Obtain IP address via DHCP
+5) (Phone) Downloads firmware/configuration from TFTP
+6) (Phone) Register with CUCM
+7) (Phone) Downloads softkeys template
+
+IP Phone POE
+- 6.3W = POE
+- 15.4W = 802.3af POE - applies DC current to cable, if resistance (25K Ohm resistance), then supply POE
+- 30W = 802.3at POE+
+> POE Class
+4 - >15.4W - 802.3at (POE+)
+3 - 15.4W - Full power (POE)
+2 - 7W - Medium power (POE)
+1 - 4W - Low power (POE)
+0 - 15.4W - default (POE)
+
+==Show POE usage==
+R1>en
+R1#show power inline
+==Change POE power==
+**Always on auto. Cannot use specific power
+R1#conf t
+R1(config)#int f0/1/0
+R1(config-if)#power inline auto [or never]
+==See details==
+R1>show cdp neighbor detail
+
+**IP Phones use the enhanced LLDP MED (Media Endpoint Discovery) instead of the standard LLDP
+
+==[Not Recommended - Old Configuration] Configure Data and Voice VLAN==
+> Data VLAN 1 10.1.10/24
+> Voice VLAN 2 10.1.2.0/24
+> PC (VLAN 1) -> IP Phone (VLAN 2) -> Switch
+**This method uses 802.1q between switch and IP Phone
+uc500#conf t
+uc500(config)#vlan 2
+uc500(config-vlan)#name VV
+uc500(config-vlan)#int f0/1/1
+uc500(config-if)#switchport mode access
+uc500(config-if)#switchport access vlan 2
+uc500(config-if)#int range f0/1/1 - 3
+uc500(config-if-range)#switchport trunk encapsulation dot1q
+uc500(config-if-range)#switchport mode trunk
+uc500(config-if-range)#switchport trunk native vlan 1 [default ethernet for PC]
+uc500(config-if-range)#switchport voice vlan 2
+> All VLANs will be allowed this port at the moment, manually prune trunk so all traffic won't go through the IP Phone (older IP phones will turn itself off when it receives too much traffic)
+uc500(config-if-range)#switchport trunk allowed vlan 1,2,1002-1005
+
+==[Recommended - Multiple VLAN Access Ports] Configure Data and Voice VLAN==
+> PC (VLAN 2) -> IP Phone (VLAN 2) -> Switch
+**PC is also on VLAN 2 because it is one access port
+**Learned from previous lecture, Access Port only belongs to a single VLAN, this is not actually true
+**This method uses 802.1p between switch and IP Phone, prioritizing voice traffic (CoS Class of Service field of 5) allowing high priority than data traffic 
+**Advantages? 
+- Multi-VLAN access port is secured
+- Voice VLAN ID can be discovered using CDP/LLDP-MED
+- Scalable (allocate seperate subnet for PC and Phone)
+- Easier to implement QoS, ACLs, security
+- Minimize cabling - using a single port for both PC with IP Phone
+uc500#conf t
+uc500(config)#vlan 2
+uc500(config-vlan)#name VV
+uc500(config-vlan)#int range f0/1/1-3
+uc500(config-if-range)#switchport mode access
+uc500(config-if-range)#switchport voice vlan dot1p
+uc500(config-if-range)#switchport access vlan 2
+
+802.1Q Frame
+(Dest)(Src)(Tag)(Len/Etype)(Data)(FCS)
+- Inserts a tag (TPID, PRI, CFI, VLAN ID)
+> PRI field is XXX (0,1), higher the value, the more priority.
+**Voice has PRI # of 101 = 5
+**Voice has VLAN ID of 0 (even though it is VLAN 2)
+
+IP Phone - obtain IP address
+- Obtain 2 parameters from DHCP server: Option 3 = Default Router/Gateway and Option 150 = TFTP Server
+
+=======================IP Phone - Start =======================
+CUCM Cisco Unified Communications Manager DHCP 
+*Not recommended - better to use external DHCP, no scalability/redundacy
+- Designed to provide DHCP to IP Phones ONLY (up to 1000)
+
+(famous webpage) https://10.2.1.1/ccmadmin/showHome.do
+> Option 150: TFTP IPv4 address is the host IPv4 address
+
+IP Phone - obtain configuration file
+1) From TFTP server (SEPdeviceMACAddress.cnf.xml)
+2) If (1) is unavailable, attempts to download (XMLDefault.cnf.xml) contains firmware - points to CUCM Servers
+
+SCCP Skinny Call Control Protocol
+- Cisco proprietary terminal control protocol
+*Client-server protocol
+- Stimulus protocol - every event, end device sends message to CUCM
+- CUCM controls IP phone	
+
+SCCP TLDR
+- Whatever phone wants to do, SCCP will say do it
+1) Phone -> SCCP, SCCP says sure, do that 
+2) SCCP -> Phone will do
+~RTP stream is direct between 2 phones (bypass CUCM)
+
+Session Initiation Protocol (SIP)
+- Open standard (compared to SCCP)
+*Peer-peer protocol
+- Limited features, b/c not Cisco
+
+uc500
+- It is a router, switch, firewall, voice mail system in a single device
+
+uc500 commands
+uc500#show version
+uc500#show voice port sum
+=======================IP Phone - End=======================
+
+EIGRP Enhanced Interior Gateway Routing Protocol
+**Best route based on: Bandwidth, Load, Delay, Reliability
+- Used for exchanging routes between routers
+- Cisco Proprietary (industry standard: OSPF)
+- Classless (subnet mask included with route)
+- Support discontiguous networks, auto-summarization is enabled by default
+- Above Layer 3 (Network) port 88
+- Uses RTP Reliable Transport Protocol because below TCP/UDP layer 4 (NOT Realtime Transport Protocol in VoIP)
+- Advanced distance vector protocol
+- Uses link-local multicast 224.0.0.10, unicast, not broadcast (IGRP uses broadcast)
+- Features Hybrid: Takes best principals from (Link State Routing Protocol and Distance Vector Routing Protocol)
+- Features 100% loop free classless routing - DUAL Diffusing Update Algorithm (OSPF uses SPF algorithm)
+- Features Partial updates send to pre-existing neighbours and Full updates on new neighbours (RIP sends entire routing table every 30seconds, OSPF database synchronization every 30 minutes)
+- Features load balancing across equal and unequal cost paths (10packets in 10mbs link and 2packets in 2mbs link) - can use lower speed links
+- Features Rapid Convergence - backup routes (Feasible Successors) are pre-calculated
+> Back-up routes is immediately installed in routing table when best route (Successor) is lost
+> In RIP, when the best route is lost, back-up routes are calculated then, whereas EIGRP, routes are pre-calculated
+ 
+EIGRP Packet Types
+> Hello: Estbalish neighbor relationships on multicast 224.0.0.10 using MD5 authentication
+	- Hold timer: Determine if neighbor has failed
+> Update: Send routing updates
+> Query: Ask neighbors about routing information
+> Reply: Respond to Query
+> ACK: Acknowledge a reliable packet
+
+EIGRP Autonomous System #
+- Must be the same AS to form neighbor relationships and exchange routes
+- Metric weights must match (K values)
+
+EIGRP K values
+**K valuve used to determine best path and route to destination
+- Values from 0 - 255
+K1 = Bandwidth modifier
+K2 = Load modifier
+K3 = Delay modifier
+K4 = Reliability modifier
+K5 = Additional Reliability modifier
+
+EIGRP Metrics
+**Metrics weights must match
+K Values are not metrics themselves, 0-255
+- 6 K values in total, but the below 4 are used in vector computing
+K1 = Bandwidth (default = 1)
+> slowest bandwidth between source and destination
+K2 = Load (0) [by default, not used]
+K3 = Delay (1)
+> 10s of ms, cumulative interface delay from your router to destination network
+K4 = Reliability (0) [by default, not used]
+~K5 = Additional Reliability modifier (0)
+- Last 2: MTU Maximum Transmission Unit, Hop count
+**Load and Reliability, if not used is in EIGRP because it was originally used by IGRP and was kept during migration
+***Composite Metric Formula = Final Value of all K values
+***Metric = 256 * (bandwidth + delay)
+Metric = 256 * (bandwidth of slowest link + sum of delays) since all other values are 0 or not used	
+
+MTU
+- Maximum amount of data that you can insert in a single packet over a physical medium
+- MTU is exchanged in EIGRP packets
+- Used as a tie breaker between 2 equal paths, those with the lowest MTU is not used, only for INBOUND updates
+
+Hop count
+- Maximum 255 or 224
+- Used to limit EIGRP AS to 255 or 224 hops
+
+EIGRP TLDR
+1) EIGRP routers send "hello" by default on multicast 224.0.0.10
+2) EIGRP routers listens for "hello" on interfaces with EIGRP enabled
+3) Once received "hello", those neighbours are added to EIGRP neighbor tables
+4) EIGRP table is populated from its learned EIGRP neighbours along with its interface
+5) EIGRP Topology table contains not only the best routes, but all the routes learned (successor routes, fessible routes, distances)
+6) EIGRP will use composite metric to determine the best routes, and put those best routes in the EIGRP routing table (successor routes)
+
+==Show EIGRP==
+R1#show ip prot
+R1#show ip eigrip topology x.x.x.x 255.255.255.255
+==Setup EIGRP==
+> Do this on both routers, then it will connect R1 <-> R2
+R1#conf t
+R1(config)#router eigrp 100 (this is the AS)
+R1(config-router)#network 10.0.0.0 
+[Optional] R1(config-router)#metric weights 0 1 0 1 0 0  (K0 K1 K2 K3 K4 K5)
+R2#conf t
+R2(config)#router eigrp 100 (this is the AS)
+R2(config-router)#network 10.0.0.0  
+[Optional - enable EIGRP on all interfaces] R2(config-router)#network 0.0.0.0 255.255.255.255
+==Change Bandwidth/Delay==
+R1(config)#int s0/1
+R1(config-if)#bandwidth 64
+R1(config-if)#delay 1000
+==Show EIGRP==
+> Shows the neighboring device wtih EIGRP enabled along with its interface
+R1#show ip eigrp neigh
+> Shows the topology
+R1#show ip eigrp topology
+**P 2.0.0.0 .......... FD is 40640000
+....................... <40640000/128256>, Serial 1/0
+> To get to 2.0.0.0, Feasible Distance is the total cost to get to that route is 40640000
+> Advertise distance: 128256 (from Router 2 to Router 1) 
+> Total cost (feasible distance) = Advertise distance + cost of the link
+
+EIGRP Dual Algorithm
+- Selects lowest-cost, loop-free  paths to each destination
+- AD Advertise Distance: cost between next-hop router and destination (cost for EIGRP neighbour to reach destination
+- FD Feasible Distance: cost from local router = AD + cost between local router and the next hop router
+R1 <-> R2 <-> R3
+**The FD for R1 -> R3 is R1 = Distance of R2->R3 + Distance of R1->R2
+
+EIGRP Dual Algorithm..
+***No need to recalculate, Feasible successor is ready for when Successor goes down
+- Successor = main route
+- Feasible successor = backup route (chosen based on the alternative route's AD must be lower than FD)
+ex. R4: FD = 25
+R2: FD = 35 (AD = 15)
+R5: FD = 50 (AD = 30)
+> Since R2's AD is 15, it can become the Feasible successor. R5 however cannot be chosen as Feasible successor because AD > FD.
+**Once R4 goes down, R2 will immediately become the Successor route
+ex. Becomes...
+R2: FD = 35 (AD = 15)
+R5: FD = 50 (AD = 30), since 30 < 35, then R5 becomes the new Feasible successor
+**If 2 path's AD are the same, there will be no Feasible successor (require neighbours to determine successors) and may be hidden from the command "R1#show ip eigrp topology", therefore we need to use "R1#show ip eigrp topology all-links"
+
+**Recall K-number and AS MUST MATCH
+
+EIGRP Load Balancing
+- Supports both Equal and Unequal load balancing
+- Default "maximum metric variance = 1": Equal cost load balancing (1) and 4 routes with minimum metric
+- Support up to 16 routes using 'maximum-path' command
+
+EIGRP Unequal Load Balancing
+- Variance must be changed to utilize Unequal Load Balancing, default is set to 1
+- Variance is the multiplier by taking the path with the smallest cost and multiplies it by Variance
+*2 Conditions must be met:
+1) FD > AD
+2) FD * Variance > current path cost
+
+EIGRP auto summarization
+- EIGRP is a classless protocol, but by default, auto summarization is turned on - it is best to turn this off immediately
+ex. R1 (10.1.1.0 /24 f0/0) <-> R2 (10.0.0.0/8 f0/0 & f0/1) <-> R3 (10.1.2.0/24 f0/1), R2 will send packets to both R1 and R3 if auto summarization is not turned off. R1 will ping R3 and following will happen:
+> ping 10.1.1.1
+> result: .!.!.
+R1 -> R2 -> R3
+R1 -> R2 -> R1
+R1 -> R2 -> R3
+R1 -> R2 -> R1
+R1 -> R2 -> R3
+***This happens because although 10.1.1.0 is advertised as /24, its 10.X.X.X roots is /8
+- After auto-summary is turned off, then the route looks as follows...
+> R2 (10.1.1.0/24 f0/0 & 10.1.2.0/24 f0/1)
+- Note: Also after no auto-summary, Null0 routes and summarized routes are removed
+
+==Turn off EIGRP Auto-summary==
+R1#conf t
+R1(config)#router eigrp 100
+R1(config-router)#no auto-summary
+
+EIGRP MD5 authentication
+- Support ONLY MD5 Hashing
+- Hashes an arbitary length into 128bit value
+- Every EIGRP update (send & receive) includes the hash for authentication
+- Each participating neighbor must have the same key ID & key string
+- EIGRP interface can interact with RIP interface, but must specify which keychain the interface will use
+
+==Setup key ID & key string==
+R1#conf t
+R1(config)#key chain nameOfKeyGroup (name of key group)
+R1(config-keychain)#key numericValue (key ID)
+R1(config-keychain-key)#key-string stringValue (key string)
+==Setup key group with EIGRP==
+> R1 s1/0 <-> s1/0 R2 
+R1(config-keychain-key)#int s1/0
+R1(config-if)#ip authentication mode eigrp 100 md5
+R1(config-if)#ip authentication key-chain eigrp 100 nameOfKeyGroup
+R2#conf t
+R2(config)#key chain nameOfKeyGroupDoesNotNeedToMatchHere (name of key group)
+R2(config-keychain)#key numericValue (key ID)
+R2(config-keychain-key)#key-string stringValue (key string)
+R2(config-keychain-key)#int s1/0
+R2(config-if)#ip authentication mode eigrp 100 md5
+R2(config-if)#ip authentication key-chain eigrp 100 nameOfKeyGroupDoesNotNeedToMatchHere
+==Show key chain==
+R1#show key chain
+
+
